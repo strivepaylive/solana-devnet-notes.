@@ -97,3 +97,5 @@ Official references: https://docs.meteora.ag/developer-guides/dbc/ ; https://sol
 - **Mainnet trading remains intentionally disabled**. An unsigned quote is neither fee collection nor tested wallet integration. Configure a verified fee-recipient address, obtain independent audit/review of the combined fee instructions, test on devnet and verify pool ownership and 100% permanent LP locks before enabling any user payments.
 
 References: https://github.com/MeteoraAg/dynamic-bonding-curve ; https://github.com/MeteoraAg/docs/blob/main/core-products/dbc/launch-configurations.mdx ; https://github.com/MeteoraAg/docs/blob/main/developer-guides/dbc/index.mdx
+
+<!-- Cloudflare production deploy trigger: momentum-cloudflare branch, 2026-10-15 -->
