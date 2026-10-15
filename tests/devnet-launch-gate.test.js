@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {checkDevnetLaunch} from '../src/devnet-launch-gate.js';
+import {METEORA_DBC_PROGRAM} from '../src/mainnet-plan.js';
+const pub='So11111111111111111111111111111111111111112';
+const valid={network:'devnet',wallet:pub,config:pub,mint:pub,quote:'SOL',dbcProgramOwner:METEORA_DBC_PROGRAM,dbcProgramExecutable:true,configExists:true,quoteMintMatches:true,lpLockVerified:true,mintAuthoritySafe:true,freezeAuthoritySafe:true,feeRecipientVerified:true,transactionSimulationPassed:true};
+test('Fail-closed by default',()=>{const a=checkDevnetLaunch();assert.equal(a.preflightPassed,false);assert.equal(a.transactionSendingEnabled,false);});
+test('Cannot enable live sending, even on passing devnet checks',()=>{assert.equal(checkDevnetLaunch(valid).preflightPassed,true);assert.equal(checkDevnetLaunch(valid).transactionSendingEnabled,false);assert.equal(checkDevnetLaunch({...valid,network:'mainnet-beta'}).preflightPassed,false);});
+test('Reject unsafe authorities and fee recipients',()=>{assert.equal(checkDevnetLaunch({...valid,mintAuthoritySafe:false}).preflightPassed,false);assert.equal(checkDevnetLaunch({...valid,feeRecipientVerified:false}).preflightPassed,false);});
+test('Reject incorrect quote and missing simulation',()=>{assert.equal(checkDevnetLaunch({...valid,quote:'FAKE'}).preflightPassed,false);assert.equal(checkDevnetLaunch({...valid,transactionSimulationPassed:false}).preflightPassed,false);});
