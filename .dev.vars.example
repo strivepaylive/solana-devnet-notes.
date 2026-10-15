@@ -1,0 +1,5 @@
+# Local development only. Copy to .dev.vars and use Cloudflare Turnstile TEST keys.
+# Do not paste production secrets into public files or GitHub.
+TURNSTILE_SITE_KEY="1x00000000000000000000AA"
+TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
+# SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"

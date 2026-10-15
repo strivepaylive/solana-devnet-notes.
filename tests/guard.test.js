@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalized, evaluateIdentity, evaluateLaunch, isSolanaAddress} from '../src/guard.js';
+const registry=[{chain:'solana',mint:'officialmint',name:'USD Coin',symbol:'USDC'}];
+const token=(name,symbol,mint='fake')=>({name,symbol,mint,chain:'solana'});
+test('unicode/homoglyphs and punctuation normalized',()=>assert.equal(normalized('UЅD Cоіn'.replace('Ѕ','S')),'usdcoin'));
+test('exact protected-brand clone blocked',()=>assert.equal(evaluateIdentity(token('USD Coin','USDC'),registry).status,'blocked'));
+test('ticker-conflicting token sent to review',()=>assert.equal(evaluateIdentity(token('Totally New Coin','USDC'),registry).status,'review'));
+test('canonical mint allowed without assertion of legitimacy',()=>assert.equal(evaluateIdentity(token('USD Coin','USDC','officialmint'),registry).status,'unverified'));
+test('unique token unverified not canonical',()=>assert.equal(evaluateIdentity(token('Peach Planet','PEACH'),registry).status,'unverified'));
+test('no mint authority inspection means no instant boost',()=>assert.equal(evaluateLaunch({status:'unverified'},{hasPool:true,liquidityUsd:50000}).status,'review'));
+test('safe preliminary signals permit labelled free boost',()=>assert.equal(evaluateLaunch({status:'unverified'},{hasPool:true,liquidityUsd:11000,mintAuthorityKnown:true}).status,'active'));
+test('mint and freeze authorities deny instant boost',()=>assert.equal(evaluateLaunch({status:'unverified'},{hasPool:true,liquidityUsd:11000,mintAuthorityKnown:true,freezeAuthority:'xyz'}).status,'review'));
+test('base58 Solana wallet shape required',()=>{assert.equal(isSolanaAddress('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),true);assert.equal(isSolanaAddress('https://x.test'),false)});

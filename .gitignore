@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars*
+.env*
+vanity-keys/
+*keypair*.json
+*.pem
+*.key
+.DS_Store

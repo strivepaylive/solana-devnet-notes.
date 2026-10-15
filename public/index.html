@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071013"><meta name="description" content="Momentum — Solana-native token intelligence, anti-impersonation screening and transparent launch promotions.">
+  <title>Momentum — Intelligence before the hype.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css"><script type="module" src="/app.js" defer></script>
+</head>
+<body>
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+<header class="topbar"><div class="page-width nav">
+  <a href="#home" class="brand"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>Momentum<span class="brand-dot">.</span></a>
+  <nav class="nav-links" aria-label="Main navigation"><a href="#discover" class="nav-link active">Discover</a><a href="#how">Protection</a><a href="#launch-safety">Trading readiness</a><a href="#boost">Launch boost</a></nav>
+  <div class="nav-actions"><button class="notification-bell" id="notificationBell" aria-label="Open notifications" aria-controls="notificationPanel" aria-expanded="false" title="Notifications">♧<span class="notification-count" id="notificationCount" hidden>0</span></button><span class="network"><span class="network-dot"></span>Solana mainnet</span><button class="button button-quiet" id="connectBtn">Connect wallet <span aria-hidden="true">↗</span></button></div>
+</div></header>
+<main id="home" class="page-width"><div class="beta-alert" role="status"><span class="beta-alert-indicator" aria-hidden="true"></span><strong>Research beta</strong><span>Momentum does not handle SOL deposits or live token trades. Momentum has not integrated wallet-signed bonding-curve trading or verified graduation/LP locks.</span><a href="#launch-safety">View readiness ↗</a></div>
+  <section class="hero">
+    <div class="hero-copy"><div class="eyebrow"><span class="spark"></span> A DIFFERENT KIND OF LAUNCH INFRASTRUCTURE <span class="line"></span></div>
+      <h1>Catch momentum.<br><span>Not the rug.</span></h1>
+      <p>The intelligence and protection layer for on-chain launches. Discover emerging traction, expose copycat tokens, and give legitimate projects a clearer way to grow.</p>
+      <div class="hero-buttons"><a class="button button-primary" href="#discover">Explore tokens <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#boost">Boost your launch <span aria-hidden="true">→</span></a></div>
+      <div class="hero-trust"><span class="icon-round">✓</span><span>Identity-first screening</span><i></i><span>Unbiased risk alerts</span><i></i><span>Solana-native</span></div>
+    </div>
+    <div class="hero-visual" aria-label="Visual indication of identity screening and launch safety">
+      <div class="orb orb-outer"><div class="orb orb-inner"><span class="orb-symbol">M</span></div></div>
+      <div class="orbit-trail orbit-one"></div><div class="orbit-trail orbit-two"></div>
+      <div class="floating-card trust-card"><span class="float-icon">✦</span><div><small>IDENTITY LAYER</small><strong>Authenticity first</strong></div><span class="green-indicator"></span></div>
+      <div class="floating-card risk-card"><div class="warning-icon">!</div><div><small>CLONE DETECTED</small><strong>Boost blocked</strong></div><span class="red-indicator"></span></div>
+    </div>
+  </section>
+  <section class="metrics-grid" aria-label="Platform principles">
+    <div class="metric"><span class="metric-heading">01 / DISCOVER</span><strong>Cross-chain signals</strong><span>Market activity, without the hype.</span></div>
+    <div class="metric"><span class="metric-heading">02 / VERIFY</span><strong>Identity firewall</strong><span>Mint addresses matter more than names.</span></div>
+    <div class="metric"><span class="metric-heading">03 / PROTECT</span><strong>Security checks</strong><span>Show the risk. Never sell the badge.</span></div>
+    <div class="metric"><span class="metric-heading">04 / AMPLIFY</span><strong>Launch boosts</strong><span>Promotion separate from verification.</span></div>
+  </section>
+  <section class="discover section" id="discover">
+    <div class="section-head"><div><span class="section-kicker">THE RADAR</span><h2>Signals, not noise<span class="mint-dot">.</span></h2><p>Live data from DEX Screener. Discovery scores reflect trading activity—not proof of organic demand.</p></div><div class="live-stamp"><span class="pulsing-dot"></span><span id="feedStatus">Connecting to live feed…</span></div></div>
+    <div class="radar-shell"><div class="radar-tools"><div class="tab-row"><button class="tab active" data-view="discover">Market radar</button><button class="tab" data-view="global">Global watch</button><button class="tab" data-view="boosts">Momentum boosts</button><button class="tab" data-view="scan">Scan a mint</button></div><div class="tools-right"><input id="searchInput" placeholder="Search token, symbol, mint" aria-label="Search tokens"><button class="tool-refresh" id="refreshBtn" title="Refresh feed" aria-label="Refresh feed">↻</button></div></div>
+      <div id="radarView"><div class="table-scroll"><table class="token-table"><thead><tr><th>ASSET</th><th>PRICE</th><th>24H VOLUME</th><th>LIQUIDITY</th><th>ACTIVITY</th><th>STATUS</th><th></th></tr></thead><tbody id="tokenRows"><tr><td colspan="7" class="empty">Loading live market data…</td></tr></tbody></table></div><div class="table-footer"><span id="resultCount">Live market signals</span><span>Only Solana tokens are eligible for boosts</span></div></div>
+      <div id="globalView" hidden><div class="table-scroll"><table class="token-table"><thead><tr><th>ASSET</th><th>CHAIN</th><th>24H VOLUME</th><th>LIQUIDITY</th><th>ACTIVITY PROXY</th><th>MARKET</th></tr></thead><tbody id="globalRows"><tr><td colspan="6" class="empty">Connecting to market sources…</td></tr></tbody></table></div><div class="table-footer">Sampled networks: Solana, Ethereum, Base, BNB Chain. This is not global identity verification.</div></div><div id="boostsView" hidden><div class="table-scroll"><table class="token-table"><thead><tr><th>ASSET</th><th>MINT</th><th>LISTING</th><th>EXPIRES</th><th></th></tr></thead><tbody id="boostRows"></tbody></table></div></div>
+      <div class="quick-scan" id="scanView" hidden><div class="quick-scan-intro"><span class="scan-icon">⌕</span><h3>Verify before you interact</h3><p>Paste a Solana mint address. Momentum compares it with protected brands, examines a live market pool and reads mint/freeze authority data.</p></div><form id="scanForm" class="inline-form"><input id="scanMint" placeholder="Solana token mint address" spellcheck="false" required minlength="32" maxlength="44"><button class="button button-primary" type="submit">Analyze token ↗</button></form><div id="scanResult" class="scan-result"></div><div id="newsResult" class="news-result"></div></div>
+    </div><div class="radar-footnote"><span>ⓘ</span> Latest profiles and boosts are discovery inputs, not an exhaustive market index. Reports and social mentions can be manipulated.</div>
+  </section>
+  <section class="section" id="holder-bubbles" aria-labelledby="bubblesTitle">
+    <div class="section-head"><div><span class="section-kicker">ON-CHAIN HOLDER STRUCTURE</span><h2 id="bubblesTitle">Holder bubbles<span class="mint-dot">.</span></h2><p>Explore the largest token accounts directly from Solana RPC. Bubble size indicates a token account's reported share of supply—not proof of who ultimately controls it.</p></div><span class="readiness-badge">Free on-chain view</span></div>
+    <div class="momentum-panel">
+      <form class="inline-form" id="bubbleForm"><input id="bubbleMint" required minlength="32" maxlength="44" placeholder="Paste Solana mint address" aria-label="Mint address for bubble map" spellcheck="false"><button type="submit" class="button button-primary">View bubbles ↗</button></form>
+      <div class="bubble-chart-wrap"><div id="bubbleChart" role="status" class="bubble-empty">Enter a token mint to display the top on-chain token accounts.</div></div>
+      <p class="studio-muted" id="bubbleWarning">Two accounts may belong to one wallet, and exchanges/pools may custody tokens for other people. No wallet conspiracy or fraud is inferred from this graphic. It is not Bubblemaps' proprietary cluster-analysis service.</p>
+    </div>
+  </section>
+  <section class="section" id="fee-builder" aria-labelledby="feeTitle">
+    <div class="section-head"><div><span class="section-kicker">LAUNCH ECONOMICS · RESEARCH PREVIEW</span><h2 id="feeTitle">2% fees. Creator choice<span class="mint-dot">.</span></h2><p>See how Meteora's bonding-curve fees could flow between the protocol, Momentum, developers, and proposed community incentives.</p></div><span class="readiness-badge">No payments enabled</span></div>
+    <div class="momentum-panel">
+      <div class="economics-controls">
+        <label for="creatorShare">Developer share of the non-protocol fee <strong id="creatorShareLabel">50%</strong><input id="creatorShare" type="range" min="0" max="100" step="5" value="50"></label>
+        <label for="rewardsPreset">How the developer proposes to use their share <select id="rewardsPreset"><option value="balanced">Balanced · 50% developer / 30% holders / 20% burn</option><option value="creator">Developer only · 100% developer</option><option value="holders">Holder focus · 30% developer / 70% holders</option><option value="burn">Burn focus · 30% developer / 70% buyback</option></select></label>
+      </div>
+      <div id="feeBreakdown" class="fee-breakdown" aria-live="polite">Loading fee policy…</div>
+      <p class="studio-muted">This is a planning calculator only. Creator-to-holder rewards and automatic buyback/burn are not built, escrowed, or audited. Post-graduation DAMM v2 positions follow different collection mechanics. The separate graduation migration fee is 0.2% of both migrated liquidity assets plus SOL network/account costs.</p>
+    </div>
+  </section>
+  <section class="protection section" id="how"><div class="section-head"><div><span class="section-kicker">THE SAFETY STACK</span><h2>Built to challenge <span class="fade-word">the hype.</span></h2><p>We protect what can be enforced, flag what needs judgment, and avoid promising impossible guarantees.</p></div></div>
+    <div class="feature-grid"><article class="feature-card featured"><span class="feature-count">01 — IDENTITY</span><div class="feature-icon fingerprint">◎</div><h3>Stop the imposters.</h3><p>Protected token registries, name and ticker confusable matching, and mint-address comparisons catch copycats before a boost is approved.</p><span class="feature-note">BLOCK / QUARANTINE / REPORT</span><div class="identity-mock"><div><b>USD Coin</b><small>Official mint registry</small></div><span class="status status-good">Canonical</span></div><div class="identity-mock ghost"><div><b>USD Cоin</b><small>Different mint • lookalike</small></div><span class="status status-bad">Blocked</span></div></article>
+    <article class="feature-card"><span class="feature-count">02 — ANALYSIS</span><div class="feature-icon">⛨</div><h3>See the actual risks.</h3><p>On-chain mint and freeze authority inspection, liquidity visibility and independent security-provider signals.</p><span class="feature-note">CHECKS, NOT CERTIFICATES</span></article>
+    <article class="feature-card"><span class="feature-count">03 — SIGNALS</span><div class="feature-icon">↗</div><h3>Find early movement.</h3><p>Cross-market intelligence groundwork, with activity-based candidates and explicit uncertainty when data is incomplete.</p><span class="feature-note">REAL DATA / NO FALSE BADGES</span></article>
+    <article class="feature-card"><span class="feature-count">04 — LAUNCHES</span><div class="feature-icon">✳</div><h3>Boost without bypassing trust.</h3><p>Creators can request launch promotion instantly. Only eligible tokens are auto-listed; suspect identities move to review.</p><span class="feature-note">PROMOTED ≠ VERIFIED</span></article></div>
+  </section>
+  <section class="launch-studio section" id="launch-studio" aria-labelledby="studioHeading">
+    <div class="section-head"><div><span class="section-kicker">THE SOLANA LAUNCH ROUTE</span><h2 id="studioHeading">Launch studio<span class="mint-dot">.</span></h2><p>Preparing SOL/USDC Meteora bonding curves with a proposed one-time 2% creator-funded launch fee, separate 2% trading fee, and DAMM v2 graduation. This is currently a <b>transaction-disabled preview</b>.</p></div><span class="readiness-badge">Preview · no funds</span></div>
+    <div class="studio-grid">
+      <div class="studio-card">
+        <span class="small-tag">PROPOSED DEFAULTS</span><h3>Safer by design.</h3>
+        <div class="studio-spec"><span>On-chain protocol</span><strong>Meteora DBC</strong></div>
+        <div class="studio-spec"><span>Quote currency</span><strong>SOL or USDC</strong></div>
+        <div class="studio-spec"><span>Momentum creation fee</span><strong>2% of funded launch budget (not live)</strong></div>
+        <div class="studio-spec"><span>DBC fixed SOL pool-creation fee</span><strong>0 SOL in proposed configuration</strong></div>
+        <div class="studio-spec"><span>Bonding-curve trade fee</span><strong>2% (separate)</strong></div>
+        <div class="studio-spec"><span>Graduation destination</span><strong>DAMM v2</strong></div>
+        <div class="studio-spec"><span>Permanent LP lock target</span><strong>100% (not deployed)</strong></div>
+        <div class="studio-spec"><span>Creator/admin reserve withdrawals</span><strong>Disallowed by proposed policy</strong></div>
+        <div class="studio-spec"><span>Mint / freeze authority</span><strong>Revoke before trading</strong></div>
+        <p class="studio-advisory">These are required configuration checks, <b>not</b> live, enforced contract guarantees. Actual Solana accounts and locks must be inspected after deployment.</p>
+        <a class="studio-external" href="https://docs.meteora.ag/developer-guides/dbc/" target="_blank" rel="noopener noreferrer">Official Meteora DBC documentation ↗</a>
+      </div>
+      <div class="studio-card studio-cost-card">
+        <span class="small-tag">LIVE BLOCKCHAIN READINGS</span><h3>What does launching cost?</h3>
+        <p class="studio-muted">Preview the proposed Momentum fee. Nothing will be charged or signed, and both pair choices remain transaction-disabled.</p>
+        <form id="launchQuoteForm" class="launch-quote-form">
+          <label for="launchQuoteAsset">Pair currency</label><select id="launchQuoteAsset" aria-label="Launch quote currency"><option value="SOL">SOL — SOL pair</option><option value="USDC">USDC — USDC pair</option></select>
+          <label for="launchFunding">Creator's total initial funding</label><input id="launchFunding" type="text" inputmode="decimal" value="0.1" maxlength="40" aria-label="Creator initial funding amount" required>
+          <button type="submit" class="button button-primary">Preview fees &amp; pairing ↗</button>
+        </form>
+        <div id="launchQuoteResult" class="studio-result" role="status">Choose SOL or USDC to preview your launch budget. A positive funded first purchase is required for this percentage-fee model.</div>
+        <p class="studio-muted">If no creator funding is committed, a 2% percentage creates a zero fee; this policy therefore requires positive launch funding. Meteora's built-in creation fee is fixed in SOL, so a 2% launch charge needs a separate atomic, audited wallet transaction.</p>
+        <div class="studio-divider"></div>
+        <p class="studio-muted">Read live Solana rent for a mint and one token account. These are only two pieces of the total launch transaction.</p>
+        <button class="button button-outline" type="button" id="estimateLaunchBtn">Fetch current on-chain costs ↗</button>
+        <div id="launchCostResult" class="studio-result" role="status">No quote yet. Actual launch totals require constructing and simulating the complete transaction.</div>
+        <div class="studio-divider"></div>
+        <button class="button button-quiet" type="button" id="checkDbcBtn">Check official protocol program ↗</button>
+        <div id="dbcProgramResult" class="studio-result" role="status">Program ID verification has not been requested.</div>
+        <div class="studio-divider"></div>
+        <p class="studio-muted">Want to launch? Connect a wallet for promotion and analytics today. <b>Mint creation, bonding-curve trades and graduation remain disabled</b> until the audited SDK integration is ready.</p>
+        <button class="button button-primary full" type="button" disabled title="No financial transaction builder is deployed">Create token — not available yet</button>
+      </div>
+    </div>
+  </section>
+  <section class="launch-readiness section" id="launch-safety" aria-labelledby="launchReadinessHeading">
+    <div class="section-head"><div><span class="section-kicker">PROOF BEFORE FUNDS</span><h2 id="launchReadinessHeading">Launch architecture. <span class="fade-word">Safety first.</span></h2><p>This is a proposed launch lifecycle, not a deployed financial service. Actual program status is reported by Momentum's public readiness endpoint.</p></div><span class="readiness-badge" id="launchReadinessBadge">Trading disabled</span></div>
+    <div class="launch-step-grid">
+      <article class="launch-step"><span class="launch-step-number">01 / BONDING CURVE</span><h3>Price discovery</h3><p>Deterministic pricing, bounded trade fees, deadline and slippage limits, reserve conservation and immutable pool settings.</p><span class="launch-step-status" id="curveReadiness">Not deployed</span></article>
+      <article class="launch-step"><span class="launch-step-number">02 / GRADUATION</span><h3>Automatic migration</h3><p>Fixed funding threshold, exactly-once state transition and verifiable transfer of reserves to a post-graduation pool.</p><span class="launch-step-status" id="graduationReadiness">Not deployed</span></article>
+      <article class="launch-step"><span class="launch-step-number">03 / LIQUIDITY</span><h3>Locked ownership</h3><p>Target: all LP ownership routed to verified escrow; no developer or administrator reserve withdrawals. Must be enforced on-chain.</p><span class="launch-step-status" id="lockReadiness">Not deployed</span></article>
+    </div>
+    <div class="readiness-footnote" id="launchReadinessDetail" role="status">Mainnet buys, sells, token launches and migration routes fail closed. Nothing in this preview accepts funds.</div>
+  </section>
+  <section class="boost-area section" id="boost"><div class="boost-copy"><span class="section-kicker">BUILT FOR BUILDERS</span><h2>Give your launch a <em>head start.</em></h2><p>Submit a Solana token as soon as it has a market pool. The beta provides one free 24-hour promotion request per wallet. Automatic listing requires liquidity and on-chain authority checks to pass.</p><div class="boost-points"><span>✓ Wallet-signed request</span><span>✓ Anti-copycat check</span><span>✓ No paid safety badges</span></div></div><div class="boost-panel"><div class="boost-panel-header"><span class="small-tag">BETA PROGRAM</span><strong>Launch boost request</strong><p>A boost increases visibility only. It does not certify ownership, safety or locked liquidity.</p></div><form id="boostForm"><label for="boostMint">SOLANA TOKEN MINT</label><input id="boostMint" placeholder="Paste token mint address" required minlength="32" maxlength="44"><label for="boostWallet">WALLET</label><div id="boostWallet" class="wallet-placeholder">No wallet connected</div><label>HUMAN VERIFICATION</label><div id="boostCaptcha" class="captcha-slot"><span>Loading bot protection…</span></div><button type="submit" id="boostSubmit" class="button button-primary full">Request free launch boost <span>↗</span></button><p id="boostMessage" role="status" class="form-status"></p></form><div class="boost-disclaimer">Solana program ID: <strong>Not deployed — vanity prefix Mom planned.</strong> Generating an address is free; deploying audited mainnet software is not.<br><br>New mints without an indexed pool or complete security data go into review. Payments are not enabled.</div></div></section>
+  <section class="bottom-info"><div><span class="section-kicker">WHAT'S NEXT</span><h3>Liquidity locks &amp; protected execution</h3><p>Non-custodial liquidity lock verification and anti-MEV execution require audited Solana programs and infrastructure before real funds can be protected. They're roadmap items, not live guarantees.</p></div><div class="tag-row"><span>Solana</span><span>Cloudflare Workers</span><span>DEX Screener</span><span>GoPlus</span><span>D1</span></div></section>
+</main>
+<footer class="footer page-width"><div class="brand"><span class="brand-mark"><span></span><span></span><span></span></span>Momentum<span class="brand-dot">.</span></div><p>Built for clarity, not promises. This software is an early beta and not financial advice.</p><span>© <span id="year"></span> Momentum</span></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<aside class="notification-panel" id="notificationPanel" hidden aria-label="Momentum notifications">
+  <div class="notification-heading"><div><small>YOUR MOMENTUM</small><h3>Notifications <span class="notifications-live">● Live</span></h3></div><button id="closeNotifications" aria-label="Close notifications">×</button></div>
+  <div class="notification-controls"><button id="notificationsSound" type="button" aria-pressed="false">♫ Sounds off</button><button id="notificationsDesktop" type="button">Enable browser alerts</button><button id="notificationsRead" type="button">Mark all read</button></div>
+  <div class="notification-list" id="notificationList" aria-live="polite"><div class="notification-empty">No alerts yet. We'll surface your scan, wallet and launch-boost activity here.</div></div>
+  <div class="notification-footer">Activity alerts are saved in this browser. Sounds only play after you enable them. Background push delivery is not yet activated.</div>
+</aside>
+<dialog id="walletDialog" class="wallet-dialog" aria-label="Select Solana wallet">
+  <div class="wallet-dialog-top"><div><span class="section-kicker">SOLANA CONNECTION</span><h3>Connect your wallet</h3><p>Choose a wallet. Momentum will only request a public address; boost or report signatures need separate approval.</p></div><button id="closeWalletDialog" aria-label="Close">×</button></div>
+  <div id="connectedWalletDetails" class="connected-details" hidden></div>
+  <div id="walletChoices" class="wallet-options"></div>
+  <p id="walletHint" class="wallet-hint" role="status"></p>
+  <div class="wallet-install"><span>Wallet not showing?</span><a href="https://phantom.com/" target="_blank" rel="noopener noreferrer">Phantom ↗</a><a href="https://solflare.com/" target="_blank" rel="noopener noreferrer">Solflare ↗</a><a href="https://backpack.app/" target="_blank" rel="noopener noreferrer">Backpack ↗</a></div>
+</dialog>
+<dialog id="reportDialog" class="report-dialog"><form id="reportForm"><div class="dialog-head"><h3>Report an impersonator</h3><button type="button" id="closeDialog" aria-label="Close">×</button></div><p>Reports are reviewed with evidence and won't remove tokens based on vote counts alone.</p><label for="reportMint">Suspected token mint</label><input id="reportMint" minlength="32" maxlength="44" required><label for="reportUrl">Evidence URL (https)</label><input id="reportUrl" type="url" placeholder="https://official-source.example/" required><label for="reportDetail">What is being impersonated?</label><textarea id="reportDetail" rows="4" minlength="15" maxlength="600" required placeholder="Explain the protected brand and why this mint is not authentic."></textarea><label>HUMAN VERIFICATION</label><div id="reportCaptcha" class="captcha-slot"><span>Open to load verification</span></div><button type="submit" class="button button-primary full">Sign &amp; submit report</button><p id="reportMessage" role="status" class="form-status"></p></form></dialog>
+</body></html>
