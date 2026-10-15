@@ -21,6 +21,22 @@ Momentum is a **free-first** Solana market research and token promotion web app.
 5. Independently review all Solana instructions and program upgrade controls; perform fuzz/property tests, simulated adversarial trading, idempotent migration tests, RPC outage tests, exact transaction simulations and a capped devnet program test. Require third-party security review before the public handles significant value.
 6. Upgrade from read-only beta only via reviewed code, contract configuration and on-chain evidence. Do not use an environment toggle or an operator button alone to treat a financial program as safe.
 
+## Deploy directly from GitHub to Cloudflare Workers (free beta)
+
+The current `momentum-cloudflare` Git branch contains the full application, with a D1-optional *read-only* mode. Use **Cloudflare Workers > Create application > Import a repository**, connect GitHub, and choose the repository `strivepaylive/solana-devnet-notes.`. Configure:
+
+- **Production branch:** `momentum-cloudflare` (Cloudflare may initially use the repository default `main`; after project creation change it under **Settings > Builds > Branch control**).
+- **Root directory:** repository root `/` (leave blank).
+- **Build command:** leave blank (or use `npm test` if Cloudflare requests one).
+- **Deploy command:** `npx wrangler deploy`.
+- **Worker name:** `momentum-launchpad`, as configured in `wrangler.jsonc`.
+
+If Cloudflare deploys the repository's default `main` first, that is only a README, **not** the Momentum application. Change the production branch to `momentum-cloudflare` and redeploy. Do not connect it as a **static-only Pages** project; Momentum requires a Worker for `/api/*`.
+
+Before enabling boosts or community reports, create a Cloudflare **D1** database, add its binding `DB`, run `schema.sql`, set `TURNSTILE_SITE_KEY` (public variable) and `TURNSTILE_SECRET_KEY` (secret), then redeploy. The market feed, global watch, manual token scans, wallet selector, and read-only analytics operate without these resources; notifications reflect only activity while the page is open. No deposits, trades, token creation, LP migration or fund custody are enabled.
+
+**Public readiness checks:** `/api/health`, `/api/config`, `/api/launch-readiness`.
+
 ## Hosting at a $0 budget
 
 Use Cloudflare Workers, Static Assets and D1 free allocations while within published quotas. This repository contains `wrangler.jsonc` and `schema.sql`. A local Node/npm install and a Cloudflare account are needed; **Cloudflare is not connected to this ChatGPT session**, and there is no public deployment URL to claim.
