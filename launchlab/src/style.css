@@ -122,3 +122,11 @@ body{background:radial-gradient(ellipse at 86% 4%,#35203d 0%,transparent 36%),ra
 .brand-icon{filter:drop-shadow(0 3px 14px #ff9e7266)}
 button:focus-visible,a:focus-visible{outline-color:#ffb46d}
 @media(prefers-reduced-motion:reduce){.orbit,.hero-planet,.meteor-trail,.mentor-orb{animation:none!important}}
+
+/* Product-first hero typography and hierarchy */
+.momentum-hero .hero-overline{display:none}
+.momentum-hero h1{font-family:'Space Grotesk',sans-serif;letter-spacing:-.085em;line-height:.95;font-weight:700}
+.momentum-hero h1 em{font-style:normal;color:#ffb46d}
+.momentum-hero .hero-copy>p{max-width:33ch;line-height:1.45}
+.momentum-hero .hero-actions{margin-top:32px}
+@media(max-width:680px){.momentum-hero h1{font-size:clamp(58px,14vw,100px);letter-spacing:-.09em}.momentum-hero .hero-copy>p{font-size:17px;line-height:1.5}.momentum-hero .hero-actions .cta{max-width:100%}}
