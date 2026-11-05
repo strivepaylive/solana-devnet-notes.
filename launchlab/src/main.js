@@ -82,7 +82,15 @@ function renderRadar(){
  for(const item of items){
   const row=document.createElement('button');
   row.type='button';row.className='token-row'+(app.selected?.mint===item.mint?' active':'');
-  const av=document.createElement('span');av.className='token-avatar';av.textContent=avatarSymbol(item.symbol);
+  const av=document.createElement('span');av.className='token-avatar';
+  const fallback=document.createElement('span');fallback.className='token-avatar-fallback';fallback.textContent='◇';
+  av.append(fallback);
+  if(item.imageUrl){
+    const image=document.createElement('img');image.className='token-avatar-image';image.alt='';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.src=item.imageUrl;
+    image.addEventListener('load',()=>{fallback.hidden=true});
+    image.addEventListener('error',()=>{image.remove();fallback.hidden=false});
+    av.append(image);
+  }
   const info=document.createElement('span');info.className='token-row-info';
   const name=document.createElement('strong');name.textContent=(item.name||'Unknown token').slice(0,70);
   const meta=document.createElement('small');

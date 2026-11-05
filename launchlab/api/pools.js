@@ -29,9 +29,12 @@ export function parsePools(payload, now=Date.now()) {
     if (!BASE58.test(pool)) continue;
     seen.add(mint);
     const token=STABLE.has(baseAddress)?quote:base;
+    const candidateImage=token?.attributes?.image_url||token?.attributes?.logo_url||null;
+    let imageUrl=null;
+    try {const u=new URL(String(candidateImage||''));if(u.protocol==='https:'&&!u.username&&!u.password&&u.hostname.includes('.'))imageUrl=u.toString()}catch{}
     const numeric = value => value!==null && value!==undefined && value!=='' && Number.isFinite(Number(value)) ? Number(value) : null;
     items.push({
-      mint, pool, createdAt:new Date(created).toISOString(),
+      mint, pool, imageUrl, createdAt:new Date(created).toISOString(),
       name:String(token?.attributes?.name||'Unlabeled token').slice(0,80),
       symbol:String(token?.attributes?.symbol||'?').slice(0,20),
       dex:String(p.relationships?.dex?.data?.id||attrs.dex_name||'DEX').slice(0,80),
