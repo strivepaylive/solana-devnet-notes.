@@ -113,30 +113,37 @@ function renderRadar(){
 function scoreResponse(risk){
  return risk?.status==='warning'?'warning':risk?.status==='review'?'review':'unverified';
 }
-function renderMarketChart(item){
- const panel=el('marketChartPanel'),frame=el('marketChartFrame');
- if(!panel||!frame)return;
- // GeckoTerminal embeds only real indexed mainnet pools. Never fabricate candles.
- if(item.network!=='mainnet'||!isPublicKey(item.pool)){
-  panel.hidden=true;frame.replaceChildren();return;
- }
- const pool=encodeURIComponent(item.pool);
- const url='https://www.geckoterminal.com/solana/pools/'+pool;
+let chartRequest=0;
+function chartMessage(frame,message){frame.replaceChildren();const p=document.createElement('p');p.className='native-chart-empty';p.textContent=message;frame.append(p)}
+function paintCandles(frame,rows){
+ const candles=rows.filter(x=>Array.isArray(x)&&x.length>=5&&x.slice(0,5).every(v=>Number.isFinite(Number(v)))).slice(-90);
+ if(!candles.length){chartMessage(frame,'No verified price candles are available for this pool yet.');return}
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 900 430');svg.setAttribute('role','img');svg.setAttribute('aria-label','Historical OHLC candlestick chart');svg.classList.add('native-chart');
+ const ns='http://www.w3.org/2000/svg',left=22,right=825,top=24,bottom=376;
+ const low=Math.min(...candles.map(x=>Number(x[3]))),high=Math.max(...candles.map(x=>Number(x[2])));
+ const span=Math.max(high-low,Math.abs(high)*0.00001,1e-12),y=v=>bottom-(Number(v)-low)/span*(bottom-top);
+ const add=(tag,attrs,cls)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(cls)n.setAttribute('class',cls);svg.append(n);return n};
+ for(let i=0;i<=4;i++){const val=low+span*i/4,yy=y(val);add('line',{x1:left,y1:yy,x2:right,y2:yy},'native-chart-grid');const t=add('text',{x:835,y:yy+4},'native-chart-axis');t.textContent=val>=1?val.toFixed(3):val.toPrecision(3)}
+ const step=(right-left)/candles.length,width=Math.max(2,Math.min(11,step*.62));
+ candles.forEach((c,i)=>{const [time,open,hi,lo,close]=c.map(Number),x=left+(i+.5)*step,up=close>=open,cls=up?'native-chart-up':'native-chart-down';add('line',{x1:x,x2:x,y1:y(hi),y2:y(lo)},'native-chart-wick '+cls);add('rect',{x:x-width/2,y:Math.min(y(open),y(close)),width,height:Math.max(1.4,Math.abs(y(open)-y(close)))},cls)});
+ const t=add('text',{x:22,y:412},'native-chart-axis');t.textContent=new Date(Number(candles[0][0])*1000).toLocaleString()+' — '+new Date(Number(candles[candles.length-1][0])*1000).toLocaleString();
+ frame.replaceChildren(svg);
+}
+async function renderMarketChart(item){
+ const panel=el('marketChartPanel'),frame=el('marketChartFrame');if(!panel||!frame)return;
+ const seq=++chartRequest;
+ if(item.network!=='mainnet'||!isPublicKey(item.pool)){panel.hidden=true;frame.replaceChildren();return}
+ panel.hidden=false;el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · Solana mainnet';
+ chartMessage(frame,'Loading verified market candles…');
  const interval=document.querySelector('[data-chart-interval].active')?.dataset.chartInterval||'15';
- const iframe=document.createElement('iframe');
- iframe.addEventListener('error',()=>{el('marketChartNote').textContent='Chart embed unavailable. Use Full chart to view the verified pool directly on GeckoTerminal.'});
- el('marketChartNote').textContent='Indexed mainnet pool chart · source: GeckoTerminal. Data may be delayed. Not investment advice.';
- iframe.title='Live GeckoTerminal price chart for '+String(item.symbol||'token');
- iframe.loading='lazy';iframe.referrerPolicy='strict-origin-when-cross-origin';
- iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0&interval='+encodeURIComponent(interval);
- frame.replaceChildren(iframe);
- const fallback=document.createElement('div');fallback.className='chart-fallback';
- const hint=document.createElement('span');hint.textContent='Chart not loading in your browser?';
- const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View live chart on GeckoTerminal';
- fallback.append(hint,link);frame.append(fallback);
- el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · SOL mainnet';
- el('marketChartExternal').href=url;
- panel.hidden=false;
+ try{
+  const response=await fetch('/api/ohlcv?pool='+encodeURIComponent(item.pool)+'&interval='+encodeURIComponent(interval));
+  if(!response.ok)throw Error('Market candles are currently unavailable.');
+  const payload=await response.json();if(seq!==chartRequest)return;
+  paintCandles(frame,payload.candles||[]);
+  el('marketChartNote').textContent='OHLC candles: GeckoTerminal public API · historical, may be delayed · not investment advice.';
+ }catch(error){if(seq===chartRequest)chartMessage(frame,'Chart unavailable for this pool. Please try another pool or timeframe.');}
 }
 document.querySelectorAll('[data-chart-interval]').forEach(button=>button.addEventListener('click',()=>{
  document.querySelectorAll('[data-chart-interval]').forEach(b=>b.classList.toggle('active',b===button));
