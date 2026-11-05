@@ -147,3 +147,5 @@ button:focus-visible,a:focus-visible{outline-color:#ffb46d}
 .chain-picker .network-brand-mark{display:block;width:36px;height:36px;object-fit:contain;flex:none}
 .chain-picker .solana-network span{display:flex;flex-direction:column;gap:3px}
 .chain-picker .solana-network small{font-size:12px;opacity:.8}
+
+.chain-picker .chain-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px}.chain-picker .chain-options label{display:flex;align-items:center;gap:12px;min-width:0}.chain-picker .network-brand-mark{width:32px;height:32px;object-fit:contain;flex:none}.chain-picker .chain-options label span{display:flex;flex-direction:column;gap:4px}.chain-picker .chain-options label small{font-size:12px;opacity:.75}
