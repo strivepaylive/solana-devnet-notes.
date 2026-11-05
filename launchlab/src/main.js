@@ -321,6 +321,25 @@ async function inspectFee(){
  }catch{checkedFeeNote('Platform verification unavailable; no Momentum fee is asserted.')}
  busy(app.busy);
 }
+// Testnet-only faucet request. RPC rate limits and funding are outside Momentum's control.
+let requestingTestSol=false;
+el('requestTestSol')?.addEventListener('click',async()=>{
+ if(requestingTestSol)return;
+ if(document.body.dataset.experience!=='devnet'){toast('Switch to Devnet to request test SOL.');return}
+ const address=connectedAddress();
+ if(!address){toast('Connect your Solana wallet first.');return}
+ const button=el('requestTestSol');requestingTestSol=true;button.disabled=true;button.textContent='Requesting test SOL…';
+ try{
+  const signature=await connection.requestAirdrop(new PublicKey(address),100000000);
+  button.textContent='Confirming on Devnet…';
+  const latest=await connection.getLatestBlockhash('confirmed');
+  const result=await connection.confirmTransaction({signature,...latest},'confirmed');
+  if(result.value.err)throw Error('The airdrop transaction did not succeed.');
+  await refreshDevnetBalance(address);
+  toast('0.1 test SOL received on Devnet. Test SOL has no monetary value.');
+ }catch(error){toast('Faucet request unavailable: '+(error?.message||'RPC may be rate limited').slice(0,130))}
+ finally{requestingTestSol=false;button.disabled=false;button.textContent='Request 0.1 Test SOL'}
+});
 el('walletBtn').addEventListener('click',async()=>{
  if(app.busy)return;busy(true);
  try{

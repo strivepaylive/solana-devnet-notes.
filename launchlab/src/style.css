@@ -173,3 +173,7 @@ body[data-experience="mainnet"] .devnet-pill{display:none!important}
 .environment-back:hover{text-decoration:underline}
 body[data-experience="mainnet"] #wallet,body[data-experience="mainnet"] a[href="#wallet"],body[data-experience="mainnet"] a[href="#launch"],body[data-experience="mainnet"] a[href="#trade"],body[data-experience="mainnet"] #devnetTab{display:none!important}
 body[data-experience="devnet"] #mainnetTab{display:none!important}
+
+.test-sol-button{border:1px solid #ffb46d;border-radius:999px;padding:8px 12px;color:#ffca9c;background:transparent;font-size:12px;font-weight:700;cursor:pointer}
+.test-sol-button:hover{background:#ffb46d1a}.test-sol-button:disabled{opacity:.55;cursor:wait}
+body[data-experience="mainnet"] #requestTestSol{display:none!important}
