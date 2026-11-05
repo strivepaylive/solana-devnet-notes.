@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://momentum.strivepay.live/sitemap.xml
