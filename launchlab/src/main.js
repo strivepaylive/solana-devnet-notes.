@@ -616,3 +616,21 @@ configureMetadataPublisher();
 inspectFee();
 setInterval(refreshPools,45000);
 setInterval(refreshNews,5*60000);
+
+// Route screens are mutually exclusive: home is not the token creation, feed or account page.
+const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','support']);
+function navigateMomentum(){
+ const requested=location.hash.slice(1).split('?')[0];
+ const route=momentumRoutes.has(requested)?requested:'top';
+ document.body.dataset.route=route;
+ document.querySelectorAll('.topbar nav a').forEach(link=>{
+  const active=link.getAttribute('href')==='#'+route;
+  link.classList.toggle('active-route',active);
+  if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+ });
+ document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',support:'Support'}[route]+' — Momentum'));
+ window.scrollTo({top:0,behavior:'instant'});
+}
+window.addEventListener('hashchange',navigateMomentum);
+navigateMomentum();
+el('supportOpenGuide')?.addEventListener('click',()=>el('mentorOrb')?.click());

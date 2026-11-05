@@ -19,3 +19,14 @@
 .launch-slider{position:relative;overflow:hidden;height:74px;border:1px solid #60895d;background:linear-gradient(100deg,#152c1c,#223a27);border-radius:999px;display:flex;align-items:center;justify-content:center;isolation:isolate;box-shadow:0 8px 30px #010b0466}.slider-fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#9aefa4,#dcff8e);z-index:-1;transition:width .07s}.slider-label{pointer-events:none;font-size:14px;font-weight:900;letter-spacing:.035em;color:#f0ffe9;text-shadow:0 2px 7px #07130a;z-index:1}.launch-slider input{position:absolute;inset:0;width:100%;height:100%;appearance:none;-webkit-appearance:none;background:transparent;margin:0;cursor:grab;touch-action:pan-y}.launch-slider input::-webkit-slider-thumb{appearance:none;width:66px;height:66px;background:radial-gradient(circle at 32% 28%,#f6ffd9,#c3f17e);border:5px solid #173d23;border-radius:50%;box-shadow:0 4px 20px #09180dcc;cursor:grab}.launch-slider input::-moz-range-thumb{width:56px;height:56px;background:#d8ff8b;border:5px solid #173d23;border-radius:50%;box-shadow:0 4px 20px #09180dcc;cursor:grab}.slider-note{font-size:11px;color:#9fb8a4;line-height:1.65;margin-top:12px}
 @media(max-width:950px){.journey-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.journey-grid{grid-template-columns:1fr 1fr}.journey-grid article{padding:16px;min-height:175px}.journey-grid article h3{font-size:17px}.chain-options{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-label{font-size:11px}.launch-slider{height:68px}}
 @media(prefers-reduced-motion:reduce){.journey-grid article{transition:none}.journey-grid article:hover{transform:none}}
+
+/* Independent platform screens. Home introduces; dedicated routes do the work. */
+body[data-route] main > .hero,body[data-route] main > .safety-strip,body[data-route] main > .section{display:none}
+body[data-route="top"] main > [data-home-only]{display:revert}
+body[data-route="discover"] #discover,body[data-route="launch"] #launch,body[data-route="signals"] #signals,body[data-route="news"] #news,body[data-route="trade"] #trade,body[data-route="profile"] #profile,body[data-route="support"] #support{display:block}
+body[data-route="top"] main > .hero{display:grid}
+body[data-route] main{min-height:72vh}
+body[data-route]:not([data-route="top"]) main > .section{padding-top:64px}
+.topbar nav a.active-route{color:#b6f6ca}
+.support-panel{max-width:800px;padding:32px}
+.support-panel .hint{margin-top:20px}
