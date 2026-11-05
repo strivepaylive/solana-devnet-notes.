@@ -30,3 +30,38 @@ body[data-route]:not([data-route="top"]) main > .section{padding-top:64px}
 .topbar nav a.active-route{color:#b6f6ca}
 .support-panel{max-width:800px;padding:32px}
 .support-panel .hint{margin-top:20px}
+
+/* Mobile viewport stability: contain decorative overflow, keep layouts inside screen. */
+html{width:100%;max-width:100%;overflow-x:clip;touch-action:pan-y;overscroll-behavior-x:none}
+body{width:100%;max-width:100%;overflow-x:clip;touch-action:pan-y;overscroll-behavior-x:none;-webkit-text-size-adjust:100%}
+.shell,main,main>.section,.panel,.topbar,.topbar nav,.topbar .actions,.hero-copy,.launch-layout,.feed-grid,.profile-grid,.signal-layout{min-width:0;max-width:100%}
+img,svg,video,canvas{max-width:100%}
+input,textarea,select{max-width:100%;min-width:0}
+input[type="range"]{touch-action:pan-y}
+@media(hover:none) and (pointer:coarse){a,button,select,input,textarea{touch-action:manipulation}}
+@media(max-width:860px){
+ .shell{padding-inline:16px}
+ .topbar{height:auto;min-height:78px;flex-wrap:wrap;gap:8px;padding-block:12px}
+ .topbar .brand{flex:1 1 auto}
+ .topbar .actions{flex:0 1 auto}
+ .topbar nav{order:3;flex:0 0 100%;width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;gap:18px;padding:10px 0 5px;white-space:nowrap;-webkit-overflow-scrolling:touch}
+ .topbar nav::-webkit-scrollbar{display:none}
+ .topbar nav a{flex-shrink:0}
+ .hero-art{max-width:100%;overflow:hidden}
+ .hero h1{overflow-wrap:break-word}
+ .pair,.trade-grid,.launch-layout,.feed-grid,.profile-grid,.signal-layout{min-width:0}
+}
+@media(max-width:600px){
+ .shell{padding-inline:14px}
+ .topbar .actions button{padding:10px 12px}
+ .topbar .nav-tour{display:none}
+ .wordmark{font-size:21px}
+ .hero h1{font-size:clamp(40px,12vw,62px)}
+ .hero-actions{flex-wrap:wrap}
+ .hero-stats{flex-wrap:wrap;gap:18px}
+ .journey-grid{grid-template-columns:minmax(0,1fr)}
+ .chain-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+ input:not([type="checkbox"]):not([type="range"]),textarea,select{font-size:16px}
+ .panel,.detail-card,.support-panel{max-width:100%}
+ .mentor{right:12px;bottom:12px}
+}
