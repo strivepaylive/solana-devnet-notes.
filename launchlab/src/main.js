@@ -110,6 +110,24 @@ function renderRadar(){
   node.append(row);
  }
 }
+let searchSequence=0,searchActive=false;
+async function searchHistoricalPools(){
+ if(document.body.dataset.experience!=='mainnet'){toast('Historical Solana pool search is available in Mainnet discovery.');return}
+ const q=el('marketSearch').value.trim();if(q.length<2){toast('Enter at least two characters.');return}
+ const seq=++searchSequence;el('marketSearchStatus').textContent='Searching indexed pools…';
+ try{
+  const response=await fetch('/api/search-pools?q='+encodeURIComponent(q));
+  if(!response.ok)throw Error('Search temporarily unavailable');
+  const data=await response.json();if(seq!==searchSequence)return;
+  app.mainnet=data.pools||[];searchActive=true;app.selected=null;
+  el('marketChartPanel').hidden=true;el('marketSearchClear').hidden=false;
+  el('marketSearchStatus').textContent=app.mainnet.length+' indexed pool results. Historical coverage depends on the market data provider.';
+  renderRadar();
+ }catch(error){if(seq===searchSequence)el('marketSearchStatus').textContent='Search unavailable. Try again shortly.'}
+}
+el('marketSearchBtn')?.addEventListener('click',searchHistoricalPools);
+el('marketSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchHistoricalPools()}});
+el('marketSearchClear')?.addEventListener('click',()=>{++searchSequence;searchActive=false;el('marketSearch').value='';el('marketSearchClear').hidden=true;el('marketSearchStatus').textContent='Showing newly indexed pools.';refreshPools()});
 function scoreResponse(risk){
  return risk?.status==='warning'?'warning':risk?.status==='review'?'review':'unverified';
 }
@@ -234,11 +252,11 @@ async function refreshPools(){
   const list=data.pools.map(x=>({...x,network:'mainnet'}));
   const newKeys=list.filter(x=>!app.seen.has(x.mint)).map(x=>x.mint);
   const first=!app.loaded;
-  app.mainnet=list;app.loaded=true;
+  if(!searchActive)app.mainnet=list;app.loaded=true;
   for(const item of list)app.seen.add(item.mint);
   el('liveStatus').textContent='Mainnet pools · indexed source with ~60s cache · not all minted tokens';
   el('feedTime').textContent='Checked '+new Date(data.checkedAt).toLocaleTimeString();
-  if(app.mode==='mainnet')renderRadar();
+  if(app.mode==='mainnet'&&!searchActive)renderRadar();
   const candidates=first?list.slice(0,5):list.filter(x=>newKeys.includes(x.mint)).slice(0,5);
   await Promise.all(candidates.map(x=>scanMint(x.mint,'mainnet',!first)));
  }catch(error){
