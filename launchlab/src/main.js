@@ -577,10 +577,21 @@ const steps=[
  {anchor:'#trade',text:"When you're ready, try a wallet-signed trade using test-network funds. Real-money trading isn't enabled yet."},
  {anchor:'#profile',text:"Your wallet is your key. Make a personal profile, but never share a recovery phrase or approve an unfamiliar transaction."}
 ];
+const spanishSteps=[
+ "¡Bienvenido a Momentum! Soy Nova, tu guía. Descubre nuevos tokens, conoce sus riesgos y prueba lanzamientos en Solana Devnet.",
+ "Aquí encontrarás actividad del mercado. Los datos de Mainnet y Devnet proceden de fuentes diferentes.",
+ "Este es nuestro centro de seguridad. Las advertencias señalan posibles riesgos; no garantizan que un token sea seguro.",
+ "Para lanzar un token, añade su nombre, símbolo, imagen y descripción. Incluye enlaces para que otros puedan investigar.",
+ "Puedes probar operaciones firmadas con tu billetera y fondos de prueba. Las operaciones con dinero real todavía no están disponibles.",
+ "Tu billetera es tu llave. Nunca compartas tu frase de recuperación ni apruebes transacciones desconocidas."
+];
+const novaLocale=(navigator.languages||[navigator.language||'en']).find(x=>/^es(?:-|$)/i.test(x))||navigator.language||'en';
+const novaSpanish=/^es(?:-|$)/i.test(novaLocale);
+function novaText(index){return novaSpanish?spanishSteps[index]:steps[index].text}
 function showTour(index){
  $all('.tour-target').forEach(node=>node.classList.remove('tour-target'));
  app.tourIndex=Math.min(index,steps.length-1);
- const step=steps[app.tourIndex];el('mentorBubble').hidden=false;el('mentorText').textContent=step.text;
+ const step=steps[app.tourIndex];el('mentorBubble').hidden=false;el('mentorText').textContent=novaText(app.tourIndex);
  el('mentorNext').textContent=app.tourIndex===steps.length-1?'Finish ✓':'Next →';
  const node=document.querySelector(step.anchor);
  if(node&&app.tourIndex>0){node.classList.add('tour-target');node.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -590,7 +601,12 @@ function speak(){
  const text=el('mentorText').textContent;
  speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(text);
- utterance.rate=.95;utterance.pitch=1.06;utterance.volume=.9;
+ utterance.lang=novaSpanish?'es-ES':'en-US';
+ const voices=speechSynthesis.getVoices();
+ const matching=voices.filter(v=>v.lang.toLowerCase().startsWith(novaSpanish?'es':'en'));
+ const natural=matching.find(v=>/natural|premium|enhanced/i.test(v.name))||matching.find(v=>v.localService)||matching[0];
+ if(natural)utterance.voice=natural;
+ utterance.rate=1;utterance.pitch=1;utterance.volume=.8;
  speechSynthesis.speak(utterance);
 }
 el('mentorOrb').addEventListener('click',()=>{if(el('mentorBubble').hidden)showTour(0);else el('mentorBubble').hidden=true});
@@ -599,6 +615,7 @@ el('mentorNext').addEventListener('click',()=>{
  if(app.tourIndex>=steps.length-1){el('mentorBubble').hidden=true;$all('.tour-target').forEach(x=>x.classList.remove('tour-target'));return}
  showTour(app.tourIndex+1);
 });
+if(novaSpanish)el('novaSpeakLabel').textContent='♪ Escuchar';
 el('mentorSpeak').addEventListener('click',speak);
 el('mentorClose').addEventListener('click',()=>{
  el('mentorBubble').hidden=true;$all('.tour-target').forEach(x=>x.classList.remove('tour-target'));
