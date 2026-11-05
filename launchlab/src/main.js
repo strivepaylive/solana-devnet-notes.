@@ -618,7 +618,7 @@ setInterval(refreshPools,45000);
 setInterval(refreshNews,5*60000);
 
 // Route screens are mutually exclusive: home is not the token creation, feed or account page.
-const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','support']);
+const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support']);
 function navigateMomentum(){
  const requested=location.hash.slice(1).split('?')[0];
  const route=momentumRoutes.has(requested)?requested:'top';
@@ -628,9 +628,32 @@ function navigateMomentum(){
   link.classList.toggle('active-route',active);
   if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
  });
- document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',support:'Support'}[route]+' — Momentum'));
+ document.querySelectorAll('.mobile-tabbar a').forEach(link=>{const active=link.dataset.tab===route;link.classList.toggle('active-route',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
+ document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',support:'Support'}[route]+' — Momentum'));
  window.scrollTo({top:0,behavior:'instant'});
 }
 window.addEventListener('hashchange',navigateMomentum);
 navigateMomentum();
 el('supportOpenGuide')?.addEventListener('click',()=>el('mentorOrb')?.click());
+
+// Mobile-first navigation. Browsing is public; wallet-required actions use an explicit access dialog.
+const moreButton=el('mobileMoreButton'),moreMenu=el('mobileMoreMenu'),gate=el('walletGate');
+function closeMore(){moreMenu.hidden=true;moreButton.setAttribute('aria-expanded','false')}
+moreButton?.addEventListener('click',()=>{moreMenu.hidden=!moreMenu.hidden;moreButton.setAttribute('aria-expanded',String(!moreMenu.hidden))});
+window.addEventListener('hashchange',closeMore);
+moreMenu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMore));
+let gateReturnFocus=null;
+function showWalletGate(){gateReturnFocus=document.activeElement;gate.hidden=false;el('walletGateConnect').focus()}
+function hideWalletGate(){gate.hidden=true;gateReturnFocus?.focus?.()}
+el('walletGateClose')?.addEventListener('click',hideWalletGate);
+el('walletGateBrowse')?.addEventListener('click',hideWalletGate);
+gate?.querySelector('[data-close-gate]')?.addEventListener('click',hideWalletGate);
+window.addEventListener('keydown',event=>{if(event.key==='Escape'){if(!gate.hidden)hideWalletGate();else closeMore()}});
+el('walletGateConnect')?.addEventListener('click',()=>{hideWalletGate();el('walletBtn').click()});
+el('walletAccessButton')?.addEventListener('click',()=>{if(connectedAddress()){location.hash='#profile'}else showWalletGate()});
+function updateAccessState(){const address=connectedAddress();if(el('walletAccessStatus'))el('walletAccessStatus').textContent=address?'Connected: '+sym(address):'Your wallet stays in your control. Momentum never asks for your seed phrase.';if(el('walletAccessButton'))el('walletAccessButton').textContent=address?'View profile →':'Connect wallet ↗'}
+el('walletBtn').addEventListener('click',()=>setTimeout(updateAccessState,1000));
+updateAccessState();
+// Prevent accidental transactions from being presented as a sign-in requirement.
+el('createForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
+el('tradeForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
