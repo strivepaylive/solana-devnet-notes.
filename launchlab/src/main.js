@@ -618,7 +618,7 @@ setInterval(refreshPools,45000);
 setInterval(refreshNews,5*60000);
 
 // Route screens are mutually exclusive: home is not the token creation, feed or account page.
-const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support','pnl']);
+const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support','pnl','callouts']);
 function navigateMomentum(){
  const requested=location.hash.slice(1).split('?')[0];
  const route=momentumRoutes.has(requested)?requested:'top';
@@ -629,7 +629,7 @@ function navigateMomentum(){
   if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
  });
  document.querySelectorAll('.mobile-tabbar a').forEach(link=>{const active=link.dataset.tab===route;link.classList.toggle('active-route',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
- document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',pnl:'P&L Studio',support:'Support'}[route]+' — Momentum'));
+ document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',pnl:'P&L Studio',callouts:'Callouts',support:'Support'}[route]+' — Momentum'));
  window.scrollTo({top:0,behavior:'instant'});
 }
 window.addEventListener('hashchange',navigateMomentum);
@@ -680,3 +680,7 @@ el('pnlSaveVideo')?.addEventListener('click',async()=>{
  try{const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw Error('No supported video recording format');recorder=new MediaRecorder(stream,{mimeType:mime});recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};recorder.onstop=()=>{const blob=new Blob(parts,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='momentum-pnl-video.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);el('pnlStatus').textContent='Export completed. Save the file from your browser downloads.'};await video.play();recorder.start(1000);el('pnlStatus').textContent='Exporting while video plays. Keep this page open.';let active=true;const paint=()=>{if(!active)return;ctx.fillStyle='#08140d';ctx.fillRect(0,0,720,1280);if(video.readyState>=2){const scale=Math.max(720/video.videoWidth,940/video.videoHeight),vw=video.videoWidth*scale,vh=video.videoHeight*scale;ctx.drawImage(video,(720-vw)/2,0,vw,vh)}const card=makePnlCanvas();ctx.drawImage(card,40,940,640,300);if(!video.ended&&recorder.state==='recording')requestAnimationFrame(paint)};paint();video.addEventListener('ended',()=>{active=false;if(recorder.state==='recording')recorder.stop();stream.getTracks().forEach(t=>t.stop())},{once:true});
  }catch(error){stream.getTracks().forEach(t=>t.stop());el('pnlStatus').textContent='Video export unavailable: '+error.message}
 });
+
+// Device-level preference draft; never treated as marketing consent or server subscription.
+try{const p=JSON.parse(localStorage.getItem('momentum-callout-preferences')||'{}');el('calloutProduct').checked=!!p.product;el('calloutWeekly').checked=!!p.weekly}catch{}
+el('calloutSave')?.addEventListener('click',()=>{try{localStorage.setItem('momentum-callout-preferences',JSON.stringify({product:el('calloutProduct').checked,weekly:el('calloutWeekly').checked}));toast('Saved on this device. Email subscriptions are not active yet.')}catch{toast('Could not save device preferences.')}});
