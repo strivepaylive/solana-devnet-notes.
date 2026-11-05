@@ -121,15 +121,20 @@ function renderMarketChart(item){
  }
  const pool=encodeURIComponent(item.pool);
  const url='https://www.geckoterminal.com/solana/pools/'+pool;
+ const interval=document.querySelector('[data-chart-interval].active')?.dataset.chartInterval||'15';
  const iframe=document.createElement('iframe');
  iframe.title='Live GeckoTerminal price chart for '+String(item.symbol||'token');
  iframe.loading='lazy';iframe.referrerPolicy='strict-origin-when-cross-origin';
- iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0';
+ iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0&interval='+encodeURIComponent(interval);
  frame.replaceChildren(iframe);
  el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · SOL mainnet';
  el('marketChartExternal').href=url;
  panel.hidden=false;
 }
+document.querySelectorAll('[data-chart-interval]').forEach(button=>button.addEventListener('click',()=>{
+ document.querySelectorAll('[data-chart-interval]').forEach(b=>b.classList.toggle('active',b===button));
+ if(app.selected?.network==='mainnet')renderMarketChart(app.selected);
+}));
 function renderDetail(item){
  renderMarketChart(item);
  const node=el('tokenDetail');
