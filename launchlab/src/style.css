@@ -113,3 +113,12 @@ html[data-theme="light"] .wallet-gate-panel p{color:#45614c}
 .network-core{display:grid;place-items:center;overflow:hidden;background:#091711!important}
 .network-core img{display:block;width:78%;height:78%;object-fit:contain;filter:drop-shadow(0 6px 16px #74f0ad44)}
 .hero-planet img{object-fit:contain}
+
+/* Momentum / meteor-ember palette: distinct from default neon-lime launchpad styling. */
+:root{--bg:#080b17;--panel:#111526;--panel2:#1a2033;--line:#34334f;--muted:#a5a7bc;--text:#f5f0f2;--lime:#ffb46d;--mint:#9b9aff;--soft:#d2c8d8;color-scheme:dark}
+body{background:radial-gradient(ellipse at 86% 4%,#35203d 0%,transparent 36%),radial-gradient(ellipse at 8% 55%,#17253b 0%,transparent 42%),#080b17}
+.ambient-one{background:#ff865b}.ambient-two{background:#7c78e6}
+.wordmark>span,.wordmark i{color:var(--lime)}
+.brand-icon{filter:drop-shadow(0 3px 14px #ff9e7266)}
+button:focus-visible,a:focus-visible{outline-color:#ffb46d}
+@media(prefers-reduced-motion:reduce){.orbit,.hero-planet,.meteor-trail,.mentor-orb{animation:none!important}}
