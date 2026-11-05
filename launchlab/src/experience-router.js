@@ -41,10 +41,7 @@ function route(){
  if(mode==='mainnet'||mode==='devnet')setEnvironment(mode);
  if(hash.startsWith('#/'))window.scrollTo({top:0,behavior:'instant'});
 }
-// A display toggle cannot silently enable real-money transactions.
-for(const [id,mode] of [['environmentMainnet','mainnet'],['environmentDevnet','devnet']]){
- document.getElementById(id)?.addEventListener('click',()=>{location.hash='#/'+mode});
-}
+// Workspace badges are non-interactive. Switch networks only through the chooser.
 // Defense in depth: a disabled button alone is insufficient for blocking transaction submission.
 for(const id of ['createForm','tradeForm']){
  document.getElementById(id)?.addEventListener('submit',event=>{

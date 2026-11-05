@@ -218,3 +218,10 @@ button:focus-visible,a:focus-visible{outline:2px solid #ffca9c;outline-offset:3p
 .market-chart-frame{display:flex;flex-direction:column}
 .market-chart-frame iframe{flex:1;min-height:300px}
 @media(max-width:640px){.chart-fallback{flex-direction:column;align-items:flex-start}}
+
+/* One workspace per route: use the chooser to switch networks. */
+.network-choice{pointer-events:none;cursor:default}.network-choice:not(.active){display:none!important}
+.chart-inside-label{color:#ffca9c;font-size:12px;font-weight:700;letter-spacing:.04em}
+.native-chart{display:block;width:100%;height:100%;touch-action:pan-y;background:#0c1020}
+.native-chart-grid{stroke:#343548;stroke-width:1;opacity:.6}.native-chart-wick{stroke-width:1.4}.native-chart-up{fill:#34d3a2;stroke:#34d3a2}.native-chart-down{fill:#ff6b85;stroke:#ff6b85}
+.native-chart-axis{font:11px 'DM Sans',sans-serif;fill:#a5a5b9}.native-chart-empty{display:flex;align-items:center;justify-content:center;min-height:330px;color:#c7bfd3;padding:30px;text-align:center}
