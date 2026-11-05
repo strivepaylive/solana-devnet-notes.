@@ -196,3 +196,8 @@ a:hover>.momentum-arrow,button:hover>.momentum-arrow{transform:translateX(4px)}
 @media(max-width:640px){.gateway-content{padding:85px 24px}.gateway-content h1{font-size:clamp(43px,10vw,64px);letter-spacing:-.065em}.gateway-kicker{font-size:10px;letter-spacing:.15em}.gateway-primary{width:100%;max-width:330px}.market-chart-panel{padding:12px}.market-chart-frame{height:390px}}
 
 .chart-timeframes{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.chart-timeframes button{background:#ffffff0b;color:#cfc9dc;border:1px solid #ffffff24;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12px;font-weight:700}.chart-timeframes button.active,.chart-timeframes button:hover{background:#ffb46d;color:#14111e;border-color:#ffb46d}
+
+/* Uniform launchpad navigation affordances across the workspace */
+.cta .momentum-arrow,.wallet-button .momentum-arrow,.secondary .momentum-arrow,.mini-link .momentum-arrow{width:17px;height:17px;margin-left:5px}
+button:focus-visible,a:focus-visible{outline:2px solid #ffca9c;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.momentum-arrow{transition:none}a:hover>.momentum-arrow,button:hover>.momentum-arrow{transform:none}}

@@ -368,7 +368,7 @@ el('walletBtn').addEventListener('click',async()=>{
  if(app.busy)return;busy(true);
  try{
   if(connectedAddress()){
-   await disconnect();el('walletBtn').innerHTML='Connect wallet <span>↗</span>';
+   await disconnect();el('walletBtn').innerHTML='Connect wallet <svg class="momentum-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
    el('profileAddress').textContent='Wallet disconnected';
    el('receiveAddress').textContent='Connect a wallet to display a public address.';
    el('walletBalance').textContent='No wallet connected.';
