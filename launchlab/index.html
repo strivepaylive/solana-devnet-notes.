@@ -52,14 +52,7 @@
  <div class="panel launch-panel">
    <div class="launch-header"><div class="number">01</div><div><h3>Create your token</h3><p>Start with the essentials, then add details people can verify.</p></div><span class="launch-icon">✳</span></div>
    <form id="createForm">
-      <fieldset class="chain-picker"><legend>Launch Everywhere <small>Choose destination networks</small></legend><p>Select a chain to see availability. Solana devnet is the only enabled deployment; Ethereum, BNB, Base, Arbitrum and Polygon are planned integrations, not fake launches.</p><div class="chain-options">
-      <label><input type="checkbox" name="chain" value="solana" checked><span>◉ Solana <small>Devnet available</small></span></label>
-      <label><input type="checkbox" name="chain" value="ethereum"><span>◇ Ethereum <small>Coming later</small></span></label>
-      <label><input type="checkbox" name="chain" value="bnb"><span>⬡ BNB Chain <small>Coming later</small></span></label>
-      <label><input type="checkbox" name="chain" value="base"><span>◈ Base <small>Coming later</small></span></label>
-      <label><input type="checkbox" name="chain" value="arbitrum"><span>✦ Arbitrum <small>Coming later</small></span></label>
-      <label><input type="checkbox" name="chain" value="polygon"><span>⬢ Polygon <small>Coming later</small></span></label>
-      </div><div id="chainSummary" class="chain-summary" aria-live="polite">Solana devnet selected · fees shown in wallet before approval.</div></fieldset>
+      <fieldset class="chain-picker"><legend>Network</legend><div class="chain-options"><label class="solana-network"><input type="checkbox" name="chain" value="solana" checked><img class="network-brand-mark" src="https://solana.com/src/img/branding/solanaLogoMark.svg" alt="" loading="lazy"><span>Solana <small>Devnet · Test SOL</small></span></label></div><div id="chainSummary" class="chain-summary" aria-live="polite">Solana Devnet · Test transactions only</div></fieldset>
       <div class="pair"><label>Token name <input required maxlength="32" id="tokenName" autocomplete="off" placeholder="e.g. Moonflower"></label><label>Ticker <input required maxlength="10" id="tokenTicker" autocapitalize="characters" placeholder="e.g. MOON"></label></div>
       <label>Tell people about your token <textarea id="tokenDescription" maxlength="500" rows="3" placeholder="What's your idea? What makes it different?"></textarea></label>
       <div class="image-drop"><div class="image-avatar" id="imagePreview">✳</div><div><b>Token image</b><p>PNG, JPEG or WebP, up to 1 MB. This will become your token's public image.</p><label class="upload-link" for="tokenImage">Choose image ↑</label><input type="file" id="tokenImage" accept="image/png,image/jpeg,image/webp" hidden></div></div>
