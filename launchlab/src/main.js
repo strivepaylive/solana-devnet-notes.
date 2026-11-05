@@ -131,17 +131,23 @@ el('marketSearchClear')?.addEventListener('click',()=>{++searchSequence;searchAc
 function scoreResponse(risk){
  return risk?.status==='warning'?'warning':risk?.status==='review'?'review':'unverified';
 }
-let chartRequest=0,chartKey='',priceSequence=0;
-const chartCache=new Map();
+let chartRequest=0,priceSequence=0,chartKey='';
 async function refreshLivePrice(){
  const item=app.selected,strip=el('livePriceStrip');
  if(!strip)return;
  if(!item||item.network!=='mainnet'||document.body.dataset.experience!=='mainnet'){strip.hidden=true;return}
  const seq=++priceSequence;strip.hidden=false;
  try{
-  const response=await fetch('/api/pool-live?pool='+encodeURIComponent(item.pool));if(!response.ok)throw Error('Unavailable');
-  const data=await response.json();if(seq!==priceSequence||app.selected?.pool!==item.pool)return;
-  el('livePoolPrice').textContent=data.priceUsd===null?'Price unavailable':'
+  const response=await fetch('/api/pool-live?pool='+encodeURIComponent(item.pool));
+  if(!response.ok)throw Error('Unavailable');
+  const data=await response.json();
+  if(seq!==priceSequence||app.selected?.pool!==item.pool)return;
+  el('livePoolPrice').textContent=data.priceUsd===null?'Price unavailable':'$'+Number(data.priceUsd).toLocaleString('en-US',{maximumSignificantDigits:8});
+  el('livePoolChange').textContent=data.change5m===null?'5m change unavailable':'5m '+(data.change5m>0?'+':'')+data.change5m.toFixed(2)+'%';
+  el('livePoolUpdated').textContent='Snapshot '+new Date(data.checkedAt).toLocaleTimeString();
+ }catch{if(seq===priceSequence)el('livePoolUpdated').textContent='Price feed temporarily unavailable'}
+}
+setInterval(()=>{if(!document.hidden)refreshLivePrice()},12000);
 function chartMessage(frame,message){frame.replaceChildren();const p=document.createElement('p');p.className='native-chart-empty';p.textContent=message;frame.append(p)}
 function paintCandles(frame,rows){
  const candles=rows.filter(x=>Array.isArray(x)&&x.length>=5&&x.slice(0,5).every(v=>Number.isFinite(Number(v)))).slice(-90);
