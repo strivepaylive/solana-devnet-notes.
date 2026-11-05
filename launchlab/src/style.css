@@ -130,3 +130,8 @@ button:focus-visible,a:focus-visible{outline-color:#ffb46d}
 .momentum-hero .hero-copy>p{max-width:33ch;line-height:1.45}
 .momentum-hero .hero-actions{margin-top:32px}
 @media(max-width:680px){.momentum-hero h1{font-size:clamp(58px,14vw,100px);letter-spacing:-.09em}.momentum-hero .hero-copy>p{font-size:17px;line-height:1.5}.momentum-hero .hero-actions .cta{max-width:100%}}
+
+/* Remove old generic product illustration, fake orbital UI, and noisy home banners. */
+.network-story,.journey-section,.motion-ticker,.safety-strip,.final-banner,.hero-planet,.momentum-hero-label,.hero-networks,.hero-stats{display:none!important}
+.momentum-hero .hero-art{opacity:.65;pointer-events:none;filter:hue-rotate(105deg) saturate(.8)}
+.momentum-hero .hero-copy{position:relative;z-index:2}
