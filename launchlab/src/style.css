@@ -201,3 +201,14 @@ a:hover>.momentum-arrow,button:hover>.momentum-arrow{transform:translateX(4px)}
 .cta .momentum-arrow,.wallet-button .momentum-arrow,.secondary .momentum-arrow,.mini-link .momentum-arrow{width:17px;height:17px;margin-left:5px}
 button:focus-visible,a:focus-visible{outline:2px solid #ffca9c;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.momentum-arrow{transition:none}a:hover>.momentum-arrow,button:hover>.momentum-arrow{transform:none}}
+
+/* Motion polish: interactive, subtle and accessible */
+@keyframes gatewayFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes gatewayGlow{0%,100%{box-shadow:0 12px 36px #ffb46d1a}50%{box-shadow:0 16px 56px #ffb46d55}}
+.gateway-primary{animation:gatewayGlow 3.6s ease-in-out infinite;transition:transform .25s ease,background .25s ease}
+.gateway-primary:hover{transform:translateY(-3px)}
+.choose-card{position:relative;overflow:hidden;transition:transform .3s ease,border-color .3s ease,background .3s ease}
+.choose-card:before{content:'';position:absolute;inset:-150% -80%;background:linear-gradient(115deg,transparent 46%,#ffb46d16 50%,transparent 54%);transform:translateX(-45%);transition:transform .65s ease;pointer-events:none}
+.choose-card:hover:before{transform:translateX(45%)}
+.gateway-wordmark{animation:gatewayFloat 7s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.gateway-primary,.gateway-wordmark{animation:none}.choose-card,.gateway-primary{transition:none}}

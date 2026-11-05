@@ -123,6 +123,8 @@ function renderMarketChart(item){
  const url='https://www.geckoterminal.com/solana/pools/'+pool;
  const interval=document.querySelector('[data-chart-interval].active')?.dataset.chartInterval||'15';
  const iframe=document.createElement('iframe');
+ iframe.addEventListener('error',()=>{el('marketChartNote').textContent='Chart embed unavailable. Use Full chart to view the verified pool directly on GeckoTerminal.'});
+ el('marketChartNote').textContent='Indexed mainnet pool chart · source: GeckoTerminal. Data may be delayed. Not investment advice.';
  iframe.title='Live GeckoTerminal price chart for '+String(item.symbol||'token');
  iframe.loading='lazy';iframe.referrerPolicy='strict-origin-when-cross-origin';
  iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0&interval='+encodeURIComponent(interval);
@@ -247,7 +249,7 @@ el('mainnetTab').addEventListener('click',()=>{
 });
 el('devnetTab').addEventListener('click',()=>{
  app.mode='devnet';el('devnetTab').classList.add('active');el('mainnetTab').classList.remove('active');
- el('liveStatus').textContent='Streaming Raydium LaunchLab devnet pool changes when RPC permits';renderRadar();
+ el('liveStatus').textContent='Streaming Raydium LaunchLab devnet pool changes when RPC permits';el('marketChartPanel').hidden=true;el('marketChartFrame').replaceChildren();renderRadar();
 });
 el('refreshPools').addEventListener('click',refreshPools);
 async function refreshNews(){
