@@ -1,36 +1,43 @@
-# Momentum LaunchLab integration — devnet only
+# Momentum LaunchLab — Devnet Studio and Market Radar
 
-This is a **separate experimental on-chain workspace** added to Momentum. It does not alter the existing Cloudflare read-only app or remove any of its 503 safety gates.
+This adds a redesigned original Momentum brand, token-launch studio and risk-informed discovery interface to the existing Raydium LaunchLab devnet experiment. The existing Cloudflare read-only research beta and mainnet trade blocks remain unchanged.
 
-## What is implemented
-- Connect a supported injected Solana wallet (Phantom, Solflare, or compatible wallet with transaction signing).
-- Inspect a Raydium LaunchLab *devnet* configuration, including the configuration account's owner and quote mint.
-- Build and request wallet approval for a Raydium LaunchLab **devnet token launch** using the official SDK.
-- Buy and sell against a discovered LaunchLab devnet pool (wallet approvals required).
-- Inspect a pool's on-chain status, quote asset, launch config and platform config address.
-- Validate ticker, HTTPS token metadata URL, quote asset and exact atomic decimal amounts.
+## Implemented interface
+- Original orbital-M SVG logo/favicon, custom Momentum wordmark, responsive animations, mobile design.
+- Mainnet GeckoTerminal newest **liquidity pools** (not every new mint), source caching approximately one minute.
+- Solana devnet Raydium LaunchLab account-change streaming when the public RPC supports it, with approximate funding-curve progress, creator, status and configuration addresses.
+- Risk badges from mint/freeze authority, Token-2022 extension checks, top-token-account concentration and explicit unknowns. Optional Web Audio alert. Nothing is labeled universally safe.
+- Token descriptions and social links from GeckoTerminal, labeled as source claims and not independent endorsement.
+- Curated worldwide crypto headlines via GDELT public news index, which can be delayed or unavailable. No X/Twitter firehose.
+- Simplified token-creation flow (name, ticker, image, description, website, X, Telegram). Technical config and manual metadata URL live behind Advanced.
+- Nova guided tutorial with optional browser voice and no microphone; local wallet profile with a personal avatar/nickname.
+- Devnet wallet-owned launch/trade SDK code. No live-wallet end-to-end trial or security audit yet.
+- Vercel Blob metadata publisher guarded by server-verified Cloudflare Turnstile. Disabled when either CAPTCHA secret or sitekey is absent; use Advanced metadata URL in that case.
+- Optional operator-only Raydium PlatformConfig creation with desired 2% bonding-curve trade fee (20,000 parts per million) and 100% proposed CPMM LP burn allocation. NOT applied to Momentum tokens until the operator config exists and is verified on-chain.
 
-**Unverified:** This has not been installed in a connected build environment, run against Solana devnet, or audited. The trading calls are integrated from Raydium's published SDK demo, but require hands-on testing with devnet funds and wallet compatibility verification before they can be relied upon. Never treat a code path as proof of successful transactions.
-
-## Run and build
-From this directory:
-
+## Local
+    cd launchlab
     npm install
     npm test
-    npm run dev
     npm run build
 
-The build writes Cloudflare static assets into /public/launchlab. The base Momentum Cloudflare Worker can serve them with its existing public assets configuration. The project root deployment pipeline must perform the launchlab build separately before deploying assets. The source files alone do not put a live launchpad on the website.
+Vercel project: root directory launchlab; Vite; build command npm run build; output directory dist. Serverless functions live in launchlab/api.
 
-## Important limitations
-- Hardcoded to the official **Solana devnet** RPC. No mainnet mode or mainnet configuration.
-- Requires an HTTPS *public token metadata JSON URL* supplied by creator. It does not upload images/metadata to permanent storage.
-- SOL uses Raydium's default candidate PDA. USDC requires a valid **devnet** Raydium configuration address for the configured devnet USDC mint; the code checks that it exists and belongs to the configured LaunchLab program.
-- Uses the third-party Raydium LaunchLab program; it is **not** a new Momentum bonding curve and it provides no guarantee against MEV, sniping, impersonation, or rugs.
-- **Momentum's desired 2% launch and 2% trading fees are NOT active.** The chosen on-chain Raydium platform config determines real fees. Creating and verifying an owned Momentum platform configuration is a separate required step.
-- Do not claim a full LP lock, automatic graduation proof, security audit, '75% rug protection', or mainnet support. Verify each property directly on chain before public launch.
-- SDK and devnet addresses can change. Version-pinned integration follows the Raydium official sample; revalidate prior to deployment.
-- The Raydium SDK package is distributed under GPL-3.0. Review license obligations before commercial redistribution.
-- No user private keys, mnemonic phrases, or RPC credentials should ever be requested or stored. Users approve transactions in their wallets.
+## Configuration
+To use operator fee setup, set VITE_MOMENTUM_OPERATOR_WALLET to your PUBLIC Solana wallet address on Vercel and rebuild. Connect that exact wallet and supply an official Raydium devnet CPMM config account. Only the operator wallet may sign creation. The app verifies the resulting platform program ownership, 2% fee rate and recipient account on chain before using it for new launches.
 
-Sources: https://github.com/raydium-io/raydium-sdk-V2-demo/tree/master/src/launchpad and https://github.com/raydium-io/raydium-docs-v1/blob/main/products/launchlab/code-demos.mdx
+To use simple image/metadata publishing, attach the already-created public Vercel Blob store (BLOB_READ_WRITE_TOKEN) and configure VITE_TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY for this domain. These must be set in Vercel environment variables, NEVER in GitHub source. Without both CAPTCHA keys the upload endpoint stays disabled. File types are PNG/JPEG/WebP max 1 MB. A server-side human check is mandatory. Additional wallet-based quotas should be introduced before opening large-scale uploads.
+
+## Not yet implemented/verified
+- Global token mint firehose, guaranteed immediate detection of every launch, persistent event indexing/backfill, all-chain bonding curves, and live production market trading.
+- Audited anti-MEV protection, sniper resistance, provable rug prevention, audited LP migration or guaranteed 100% on-chain burn.
+- Real end-to-end signed launch, real swap confirmation, on-chain verified Momentum fee collection or 2% one-time launch charge.
+- Shared public profile database, social follow system, real profile authentication with server-issued nonces.
+
+## Before a public real-money rollout
+Review open-source licenses, update vulnerable dependencies, test live transactions and migrations on devnet, implement persistent low-latency indexing, secure quota-controlled asset uploads, prove all fee recipients and platform control, and obtain independent contract/infrastructure security review. Vercel Hobby plan is non-commercial only: a fee-earning production app needs compliant hosting. Mainnet Solana fees/rent are not free.
+
+Reference:
+https://github.com/raydium-io/raydium-sdk-V2-demo/tree/master/src/launchpad
+https://github.com/raydium-io/raydium-docs-v1/blob/main/products/launchlab/platform-config.mdx
+https://api.geckoterminal.com/docs/index.html

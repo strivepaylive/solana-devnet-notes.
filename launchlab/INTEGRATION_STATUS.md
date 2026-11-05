@@ -1,25 +1,22 @@
-# Momentum launchpad: integration status
+# Momentum integration status — November 5, 2026
 
-## Current status
-The redesigned landing page and risk/news API modules have been committed as source, but the frontend integration has not passed an end-to-end build or browser test. Do not deploy this branch as a production trading interface until the mismatched frontend handlers are resolved.
+## Source and deployment safety
+The polished launchpad UI, mainnet pool feed, devnet LaunchLab account streaming, on-chain token risk signals, crypto news, browser voice guide, simplified metadata flow and non-custodial wallet address UI are implemented in source on the Momentum devnet development branch. Browser and wallet end-to-end testing are required before live production financial use.
 
-## Wallet deposits (noncustodial)
-- A connected Solana wallet can receive SOL and SPL tokens directly from another supported Solana wallet or exchange.
-- Never describe the connected public address as a custodial Momentum deposit address. It is controlled by the wallet provider, not Momentum.
-- Never request recovery phrases, private keys, or secret-key exports.
-- Show the selected network prominently, verify the token mint and network, and provide a copyable public address.
-- Mainnet and devnet balances must remain separate. Devnet test funds are not real funds.
-- Never credit an internal balance based only on a pending transaction or user-supplied transaction hash.
-- If introducing hosted wallets, use a professionally audited embedded-wallet provider and server-side authentication, not plaintext browser key storage.
+The connected wallet's public address can receive assets on its appropriate network. Momentum **does not hold custody**. The preview is **devnet only**. Never present it as a mainnet deposit or send actual funds through a test network.
 
-## Remaining blockers
-1. Connect the new landing page to the discovery, risk, news, and guide modules; the old main.js still targets elements that were replaced.
-2. Test wallet connections in desktop and mobile wallet browsers, including rejection and account changes.
-3. Verify Raydium launch and swap transaction building with devnet wallets.
-4. Set up image/metadata storage, signed uploads, and content validation.
-5. Create and independently verify a Momentum-owned Raydium platform configuration before claiming any 2% fee collection.
-6. Add secured Google OAuth and user profiles with appropriate row-level authorization.
-7. Run security, dependency, accessibility, and end-to-end tests before any production launch.
+## Remaining work
+1. Validate successful Raydium devnet create/buy/sell transactions with multiple wallet providers and cancelled signatures.
+2. Fix security advisories, perform independent on-chain program/config audits, verify liquidity burn and graduation before advertising financial safety.
+3. Set VITE_MOMENTUM_OPERATOR_WALLET (public address), connect the operator wallet and sign a real Raydium devnet PlatformConfig. Verify exact 2% platform trade fee before declaring it active.
+4. Configure anti-bot Turnstile site+secret keys for metadata storage and add durable per-wallet quotas before allowing unrestricted media uploads.
+5. Replace local browser trader profiles with authenticated backend profiles, server-issued nonce/challenge and secure row-level access policies.
+6. Replace free cached new-pool discovery with reliable persistent RPC subscription/indexer and backfill to approach near-real-time all-launch coverage.
+7. Carry out E2E UI/accessibility, load and recovery tests. Current build success is not production proof.
+8. Fee collection on a commercial public site requires hosting compliant with Vercel's noncommercial Hobby restrictions, or an alternative hosting plan.
 
-## Payments
-Direct noncustodial wallet transfers do not require Stripe. Card purchases are a separate regulated service requiring an eligible approved provider.
+## Public-facing facts
+- A mint or liquidity pool can be malicious even if its mint and freeze authorities are revoked.
+- Holder concentration can include vaults; wallet clustering, owner identity and anti-MEV/rug assurances cannot be inferred from a simple risk score.
+- Social links supplied by issuers are not verified identities.
+- 2% Raydium PlatformConfig rate covers LaunchLab curve trades where an operator-owned config is actually used; it does not automatically cover post-graduation CPMM trading.

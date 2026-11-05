@@ -1,35 +1,95 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark"><title>Momentum · LaunchLab Devnet</title>
+<meta name="theme-color" content="#0a100e"><meta name="description" content="Momentum: discover Solana launches, understand token risk signals, and test token launches with Raydium on devnet.">
+<title>Momentum — Launch beyond ordinary.</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
 </head><body>
+<div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div>
 <div class="shell">
-  <header class="topbar"><div class="mark"><span class="symbol">M</span><div><strong>MOMENTUM</strong><small>LaunchLab laboratory</small></div></div><div class="actions"><span class="network">● Solana devnet only</span><button id="walletBtn" type="button">Connect wallet</button></div></header>
-  <section class="hero"><div class="eyebrow">OPEN-SOURCE LAUNCH INFRASTRUCTURE / EXPERIMENTAL</div><h1>Launch something<br><span>that matters.</span></h1><p>Build a Solana token with Raydium LaunchLab. Every on-chain action requires your connected wallet's approval. This environment is strictly devnet.</p></section>
-  <div class="alert"><strong>Experimental devnet workspace</strong> — not tested against a live RPC or independently audited. No mainnet transfers. Momentum's planned 2% platform fees and anti-rug guarantees are not implemented.</div>
-  <div class="layout">
-    <section class="panel"><div class="panel-heading"><span class="step">01</span><div><h2>Create a token</h2><p>Enter your token details, review the on-chain config, then sign the launch.</p></div></div>
-      <form id="createForm">
-        <div class="pair"><label>Token name<input required maxlength="32" id="tokenName" placeholder="Example: Momentum Test"></label><label>Ticker<input required maxlength="10" id="tokenTicker" placeholder="MOMO"></label></div>
-        <label>Metadata JSON URL <input required type="url" id="metadataUrl" placeholder="https://your-domain.com/metadata.json"><small>This public URL should provide valid Solana-compatible token metadata. Upload your image and JSON beforehand.</small></label>
-        <div class="pair"><label>Quote asset<select id="launchQuote"><option value="SOL">SOL</option><option value="USDC">Devnet USDC</option></select></label><label>Config account (optional for SOL)<input id="configId" placeholder="Raydium devnet config public key"></label></div>
-        <div class="form-actions"><button id="verifyConfigBtn" class="secondary" type="button">Verify config</button><button id="createBtn" class="primary" type="submit">Create on devnet</button></div>
-      </form>
-      <div class="hint" id="configPreview">No on-chain configuration verified yet.</div>
-    </section>
-    <aside class="panel side"><h3>How it works</h3><div class="milestone"><b>1</b><span><strong>Wallet-owned</strong><small>Only your wallet can approve transactions. Momentum never receives your recovery phrase.</small></span></div><div class="milestone"><b>2</b><span><strong>Bonding curve</strong><small>Uses a Raydium LaunchLab program and its approved on-chain configuration.</small></span></div><div class="milestone"><b>3</b><span><strong>Graduation</strong><small>Raydium's on-chain config governs migration; this UI does not guarantee or enforce a liquidity lock.</small></span></div><div class="metric"><small>Requested Momentum trading fee</small><strong>2.00%</strong><span>Target only — NOT collected by this prototype</span></div></aside>
-    <section class="panel"><div class="panel-heading"><span class="step">02</span><div><h2>Trade a devnet launch</h2><p>Look up a Raydium pool and submit a wallet-signed buy or sell.</p></div></div>
-      <form id="tradeForm">
-        <label>Token mint address<input required id="tradeMint" placeholder="Solana mint public key"></label>
-        <div class="pair"><label>Quote asset<select id="tradeQuote"><option value="SOL">SOL</option><option value="USDC">Devnet USDC</option></select></label><label>Action<select id="tradeSide"><option value="buy">Buy</option><option value="sell">Sell</option></select></label></div>
-        <label>Amount <input id="tradeAmount" required inputmode="decimal" placeholder="0.01"><small id="amountHint">Buy amount in SOL. Sell amount in tokens (6 decimals for standard launch mints).</small></label>
-        <div class="form-actions"><button id="inspectBtn" class="secondary" type="button">Inspect pool</button><button class="primary" type="submit" id="tradeBtn">Submit devnet trade</button></div>
-      </form>
-      <div class="hint" id="poolPreview">No pool inspected yet.</div>
-    </section>
-    <aside class="panel side status-panel"><h3>Transaction log</h3><div id="status" class="status">Connect a wallet and verify a config to begin.</div><div id="results"></div><small>Before approving a transaction, review the instructions, destinations and network in your wallet.</small></aside>
-  </div>
-  <footer>Momentum / Raydium LaunchLab integration experiment · <a href="/">Return to market research</a> · <a href="https://github.com/raydium-io/raydium-sdk-V2-demo" target="_blank" rel="noreferrer">Upstream SDK demo</a></footer>
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="Momentum home"><img src="./logo.svg" alt="" class="brand-icon"><span class="wordmark">MOMEN<span>TUM</span><i>✦</i></span></a>
+  <nav aria-label="Main sections"><a href="#discover">Discover</a><a href="#launch">Create</a><a href="#signals">Risk radar</a><a href="#news">News</a></nav>
+  <div class="actions"><button type="button" class="nav-tour" id="startTour">✧ Beginner guide</button><button id="walletBtn" class="wallet-button" type="button">Connect wallet <span>↗</span></button></div>
+</header>
+<main id="top">
+<section class="hero">
+  <div class="hero-copy"><div class="eyebrow"><span class="pulse-dot"></span> FASTER SIGNALS. SMARTER DECISIONS. <span class="eyebrow-star">✦</span></div>
+  <h1>Make your next<br><em>move</em> <span class="hero-outline">matter.</span></h1>
+  <p>A place for token creators and curious traders. Catch fresh pools, check on-chain warning signals, explore meaningful crypto news, and create on Solana devnet.</p>
+  <div class="hero-actions"><a href="#launch" class="cta">Launch a token <span>↗</span></a><a class="secondary-link" href="#discover">Explore new launches <span>→</span></a></div>
+  <div class="hero-stats"><div><strong>24/7</strong><small>Market discovery</small></div><div><strong>On-chain</strong><small>Risk signals</small></div><div><strong>Devnet</strong><small>Trading laboratory</small></div></div></div>
+  <div class="hero-art" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="orbit orbit-c"></div><div class="hero-planet"><img src="./logo.svg" alt=""></div><span class="floating-spark a">✦</span><span class="floating-spark b">✧</span><div class="floating-note note-one">NEW POOL <b>↗</b></div><div class="floating-note note-two">RISK RADAR <b>◈</b></div></div>
+</section>
+
+<div class="safety-strip"><span class="safety-icon">◈</span><p><strong>Safety before hype.</strong> Badges report observable risks, never guaranteed safety. Public feeds can miss launches or arrive late. Trading is <b>devnet only</b> until independently validated.</p><span class="strip-verified">REAL DATA · NO FAKE STATS</span></div>
+
+<section class="section discover" id="discover">
+ <div class="section-title"><div><span class="section-kicker">01 / DISCOVERY</span><h2>New on the radar<span class="dot">.</span></h2><p>Fresh Solana mainnet pools and live Raydium devnet LaunchLab activity — labeled separately.</p></div>
+ <div class="feed-controls"><div class="segmented" role="group" aria-label="Feed network"><button class="active" id="mainnetTab" type="button">Mainnet pools</button><button id="devnetTab" type="button">Devnet stream</button></div><button class="icon-button" type="button" id="refreshPools" title="Refresh market feed">↻</button></div></div>
+ <div class="stream-status"><span class="live-pulse"></span><span id="liveStatus">Checking live sources…</span><small id="feedTime">—</small></div>
+ <div class="feed-grid"><div class="feed-list" id="feedList"><div class="feed-empty">Retrieving real market data. No example tokens will be substituted.</div></div>
+ <aside class="detail-card" id="tokenDetail"><div class="card-eyebrow">TOKEN INTELLIGENCE / LIVE</div><div class="empty-illustration">◎</div><h3>Clarity before you commit.</h3><p>Choose a new launch to see liquidity, valuation, contract details, and risk signals where verified data is available.</p><div class="detail-foot">No badge means “safe.” Every token carries risk.</div></aside></div>
+ <div class="feed-explainer"><span>◎</span><p><strong>How fast?</strong> Raydium devnet account changes stream through Solana RPC when available; the public mainnet new-pool API updates about every 60 seconds. This is not a guaranteed all-token, zero-latency feed.</p></div>
+</section>
+
+<section class="section launch-section" id="launch">
+ <div class="section-title"><div><span class="section-kicker">02 / CREATE</span><h2>Your idea. <span class="gradient-word">On-chain.</span></h2><p>Creating a token should feel easy. The details you don't need are tucked away.</p></div><span class="devnet-pill">◉ Solana devnet · Testing</span></div>
+ <div class="launch-layout">
+ <div class="panel launch-panel">
+   <div class="launch-header"><div class="number">01</div><div><h3>Create your token</h3><p>Start with the essentials, then add details people can verify.</p></div><span class="launch-icon">✳</span></div>
+   <form id="createForm">
+      <div class="pair"><label>Token name <input required maxlength="32" id="tokenName" autocomplete="off" placeholder="e.g. Moonflower"></label><label>Ticker <input required maxlength="10" id="tokenTicker" autocapitalize="characters" placeholder="e.g. MOON"></label></div>
+      <label>Tell people about your token <textarea id="tokenDescription" maxlength="500" rows="3" placeholder="What's your idea? What makes it different?"></textarea></label>
+      <div class="image-drop"><div class="image-avatar" id="imagePreview">✳</div><div><b>Token image</b><p>PNG, JPEG or WebP, up to 1 MB. This will become your token's public image.</p><label class="upload-link" for="tokenImage">Choose image ↑</label><input type="file" id="tokenImage" accept="image/png,image/jpeg,image/webp" hidden></div></div>
+      <div class="field-group-heading"><span>Links & community <small>Optional</small></span><small>Shown as unverified claims, not endorsements.</small></div>
+      <div class="pair"><label>Website <input id="tokenWebsite" placeholder="https://yourproject.com" inputmode="url"></label><label>X / Twitter <input id="tokenX" placeholder="https://x.com/yourproject" inputmode="url"></label></div>
+      <div class="pair"><label>Telegram <input id="tokenTelegram" placeholder="https://t.me/yourproject" inputmode="url"></label><label>Quote currency <select id="launchQuote"><option value="SOL">SOL</option><option value="USDC">Devnet USDC</option></select></label></div>
+      <details class="advanced" id="advancedFields"><summary>Advanced technical settings <span>⌄</span></summary>
+       <p>These exist for developers and the testing network. Most users should not need them once secure upload storage is configured.</p>
+       <label>Existing public metadata JSON URL <input id="metadataUrl" type="url" placeholder="https://.../metadata.json"><small>Only needed when automatic image and metadata publishing is unavailable.</small></label>
+       <label>Raydium devnet LaunchLab config account <input id="configId" placeholder="Optional for SOL; required for devnet USDC"></label>
+       <button id="verifyConfigBtn" type="button" class="secondary small">Check on-chain config</button>
+      </details>
+      <div id="configPreview" class="hint" aria-live="polite">No on-chain configuration inspected yet.</div>
+      <div class="form-actions"><button class="cta button-cta" type="submit" id="createBtn">Create token on devnet <span>↗</span></button></div>
+      <div class="fineprint">Wallet confirmation is always required. Devnet tokens have no guaranteed real-world value. An external metadata URL is currently required unless the protected upload service is configured.</div>
+   </form>
+ </div>
+ <aside class="launch-side">
+   <div class="preview-card"><div class="card-eyebrow">YOUR CREATION / LIVE PREVIEW</div><div class="coin-preview"><div id="previewCoinIcon" class="preview-coin">✳</div><div class="coin-name" id="previewName">Your token name</div><div class="coin-symbol" id="previewTicker">$TICKER</div><div id="previewDescription">Your story starts here.</div></div><div class="preview-bottom">Created with <strong>MOMENTUM ✦</strong><span>Development network</span></div></div>
+   <div class="panel principles"><h4>Built for transparency</h4><div class="principle">✓ <span>Non-custodial wallet approval</span></div><div class="principle">✓ <span>On-chain launch configuration checks</span></div><div class="principle caution">◇ <span>No false “rug-proof” claims</span></div><div class="principle caution">◇ <span>Platform 2% fee needs verified on-chain setup</span></div></div>
+ </aside>
+ </div>
+</section>
+
+<section class="section" id="signals">
+ <div class="section-title"><div><span class="section-kicker">03 / SAFETY LAB</span><h2>Know the risk <span class="gradient-word">signals.</span></h2><p>No shortcuts, fake ratings, or claims that a token is guaranteed safe.</p></div></div>
+ <div class="signal-layout">
+  <div class="panel scan-panel"><h3>Inspect any Solana mint</h3><p>Read mint authority, freeze authority, major token-account concentration and extension warnings, where available.</p><form id="scanForm"><div class="pair"><label>Token mint address <input id="scanMint" required placeholder="Paste Solana mint address"></label><label>Network <select id="scanNetwork"><option value="mainnet">Mainnet</option><option value="devnet">Devnet</option></select></label></div><button type="submit" class="secondary">Run on-chain checks ↗</button></form><div id="scanResults" class="hint">Select a token from the radar or paste a mint.</div></div>
+  <div class="panel notifications-panel"><h3>Sound & safety alerts</h3><p>Enable an attention sound for newly detected elevated-risk tokens. The label always appears even if sound is muted.</p><label class="toggle-row"><input id="soundToggle" type="checkbox"><span>Play warning sounds</span><b>OFF / ON</b></label><div class="risk-key"><div><span class="risk-badge warn">⚠ Elevated risk</span><p>Known concerning on-chain signals detected</p></div><div><span class="risk-badge review">◇ Needs review</span><p>Additional caution signals found</p></div><div><span class="risk-badge unknown">◎ Unverified</span><p>Not enough evidence to label as verified</p></div></div></div>
+ </div>
+</section>
+
+<section class="section" id="news"><div class="section-title"><div><span class="section-kicker">04 / GLOBAL SIGNALS</span><h2>What's moving <span class="gradient-word">crypto?</span></h2><p>Recent industry-relevant reporting, not random timelines or unverified social rumours.</p></div><button id="refreshNews" type="button" class="secondary small">Refresh news ↻</button></div><div class="news-grid" id="newsGrid"><div class="feed-empty">Retrieving curated worldwide crypto headlines…</div></div><div class="feed-explainer"><span>✧</span><p>Headlines link to independent news publishers. Articles are indexed by GDELT, may be delayed or unavailable, and aren't trading recommendations.</p></div></section>
+
+<section class="section" id="trade"><div class="section-title"><div><span class="section-kicker">05 / DEVNET EXCHANGE</span><h2>Try it <span class="gradient-word">before real money.</span></h2><p>Test wallet-signed trades against a valid Raydium LaunchLab pool.</p></div></div><div class="panel trade-panel"><form id="tradeForm"><div class="trade-grid"><label>Token mint address<input required id="tradeMint" placeholder="Solana mint public key"></label><label>Quote asset<select id="tradeQuote"><option value="SOL">SOL</option><option value="USDC">Devnet USDC</option></select></label><label>Buy or sell<select id="tradeSide"><option value="buy">Buy</option><option value="sell">Sell</option></select></label><label>Amount<input required inputmode="decimal" id="tradeAmount" placeholder="0.01"></label></div><p id="amountHint">Buy amount in SOL. Sell amounts are token quantities.</p><div class="form-actions"><button id="inspectBtn" type="button" class="secondary">Inspect Raydium pool</button><button id="tradeBtn" type="submit" class="cta button-cta">Submit devnet trade ↗</button></div></form><div class="hint" id="poolPreview">No Raydium devnet pool inspected.</div></div></section>
+
+<section class="section" id="profile"><div class="section-title"><div><span class="section-kicker">06 / COMMUNITY</span><h2>Your trading <span class="gradient-word">identity.</span></h2><p>Personalize how you look in Momentum. Your wallet remains in control.</p></div></div><div class="profile-grid"><div class="panel profile-panel"><div class="profile-banner"><div id="profileAvatar" class="profile-avatar">✦</div><span class="profile-orbit">✧</span></div><div class="profile-summary"><h3 id="profileName">Explorer #0000</h3><span id="profileAddress">Connect your wallet to set a local profile.</span></div><label>Display name <input id="profileDisplayName" maxlength="24" placeholder="Choose a nickname"></label><div class="form-actions"><button type="button" id="saveProfile" class="secondary">Save on this device</button><button type="button" id="signProfile" class="secondary">Verify wallet signature</button></div><p class="fineprint">This preview is stored in your own browser. A shared profile network, public badges, follows and history require a separately secured database and authenticated backend.</p></div>
+<div class="panel wallet-panel"><div class="card-eyebrow">NON-CUSTODIAL WALLET / DEVNET</div><h3>Receive SOL & tokens</h3><p>Your connected wallet controls its own Solana public address. Momentum does not hold deposits or private keys. Only use the appropriate network and token mint.</p><div class="hint" id="receiveAddress">Connect a wallet to display a public address.</div><p id="walletBalance">No wallet connected.</p><button type="button" class="secondary" id="copyWalletAddress">Copy public wallet address ↗</button><p class="fineprint">This is a Solana devnet test application. Do not send real funds to test workflows, and never share a seed phrase.</p></div>
+<div class="panel fee-panel"><div class="card-eyebrow">OPERATOR CONTROL / DEVNET</div><h3>Momentum platform fees</h3><div class="fee-rate">2.00<span>% per curve trade · target</span></div><p>Raydium supports a platform fee of 20,000 parts per million (2%). It only applies when a Momentum-owned platform configuration is signed and verified on-chain.</p><div class="hint" id="feeStatus">No verified Momentum operator platform on this test site. No 2% fee is being collected for Momentum.</div><details class="advanced"><summary>Operator setup (wallet owner only) <span>⌄</span></summary><label>Verified Raydium devnet CPMM configuration address <input id="cpmmConfig" placeholder="Official CPMM devnet config public key"></label><button type="button" class="secondary" id="createPlatformBtn">Create Momentum 2% platform config on devnet</button><small>Disabled unless an operator wallet public address is configured, connected and verified. This action costs devnet SOL and requests your wallet signature.</small></details></div></div></section>
+
+<section class="section final-banner"><span class="section-kicker">MOMENTUM IS BUILDING IN THE OPEN</span><h2>Go beyond the <span class="gradient-word">noise.</span></h2><p>Launch with care. Verify the details. Keep your wallet yours.</p><a class="cta" href="#launch">Create on devnet ↗</a></section>
+</main>
+<footer><a class="footer-brand" href="#top"><img src="./logo.svg" alt=""> <strong>MOMENTUM ✦</strong></a><span>Solana devnet experiment · market data may be delayed · no safety guarantees</span><a href="https://github.com/raydium-io/raydium-sdk-V2-demo" target="_blank" rel="noopener noreferrer">Open-source SDK ↗</a></footer>
 </div>
+<div class="mentor" id="mentor" aria-live="polite">
+ <button id="mentorOrb" class="mentor-orb" type="button" aria-label="Open Momentum guide"><span class="mentor-face"><i></i><i></i><b>◡</b></span><span class="mentor-spark">✦</span></button>
+ <div id="mentorBubble" class="mentor-bubble" hidden><div class="mentor-title">NOVA <small>Momentum guide ✧</small><button id="mentorClose" type="button" aria-label="Close guide">×</button></div><p id="mentorText">Hey there! I’m Nova. Want a quick tour of Momentum?</p><div class="mentor-actions"><button id="mentorSpeak" type="button">♪ Speak</button><button id="mentorNext" type="button">Next →</button></div><small>Audio uses your browser's available voice. No microphone access needed.</small></div>
+</div>
+<div id="toast" class="toast" aria-live="polite"></div>
 <script type="module" src="/src/main.js"></script></body></html>
