@@ -168,3 +168,8 @@ body[data-experience='landing']>.ambient,body[data-experience='choose']>.ambient
 /* Route-specific workspace isolation. Never expose Devnet actions as Mainnet actions. */
 body[data-experience="mainnet"] #launch,body[data-experience="mainnet"] #trade,body[data-experience="mainnet"] #devnetFaucetLink{display:none!important}
 body[data-experience="mainnet"] .devnet-pill{display:none!important}
+
+.environment-back{font-size:12px;font-weight:700;color:#ffca9c;text-decoration:none;white-space:nowrap}
+.environment-back:hover{text-decoration:underline}
+body[data-experience="mainnet"] #wallet,body[data-experience="mainnet"] a[href="#wallet"],body[data-experience="mainnet"] a[href="#launch"],body[data-experience="mainnet"] a[href="#trade"],body[data-experience="mainnet"] #devnetTab{display:none!important}
+body[data-experience="devnet"] #mainnetTab{display:none!important}

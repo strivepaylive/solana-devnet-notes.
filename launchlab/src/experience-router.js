@@ -3,8 +3,6 @@ const gateway=document.getElementById('momentumGateway');
 const chooser=document.getElementById('momentumChoose');
 const workspace=document.getElementById('momentumWorkspace');
 const mentor=document.getElementById('mentor');
-const mainOnly=['launch','trade'];
-const devOnly=['launch','trade'];
 let activeEnvironment=null;
 function setEnvironment(mode){
  activeEnvironment=mode;
@@ -18,10 +16,15 @@ function setEnvironment(mode){
   const active=(id==='environmentMainnet')===isMain;
   button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
  }
- document.querySelectorAll('#launch,#trade').forEach(section=>{section.hidden=isMain});
+ document.querySelectorAll('#launch,#trade,#wallet').forEach(section=>{section.hidden=isMain});
+ // Market feeds must not cross environments. The SDK remains Devnet-only.
+ document.getElementById('mainnetTab')?.toggleAttribute('hidden',!isMain);
+ document.getElementById('devnetTab')?.toggleAttribute('hidden',isMain);
+ const feedHeading=document.querySelector('#discover .section-title p');
+ if(feedHeading)feedHeading.textContent=isMain?'Live indexed Solana mainnet pools. Market discovery only; transactions are disabled.':'Raydium Devnet activity. Test tokens and test SOL have no monetary value.';
  document.getElementById('devnetFaucetLink')?.toggleAttribute('hidden',isMain);
  document.querySelectorAll('#createForm button[type="submit"],#tradeForm button[type="submit"]').forEach(button=>{button.disabled=isMain;button.title=isMain?'Only Devnet transactions are supported':''});
- document.querySelectorAll('a[href="#launch"],a[href="#trade"]').forEach(a=>{a.hidden=isMain});
+ document.querySelectorAll('a[href="#launch"],a[href="#trade"],a[href="#wallet"]').forEach(a=>{a.hidden=isMain});
  document.getElementById(isMain?'mainnetTab':'devnetTab')?.click();
 }
 function route(){
@@ -47,8 +50,14 @@ for(const id of ['createForm','tradeForm']){
  document.getElementById(id)?.addEventListener('submit',event=>{
   if(activeEnvironment!=='devnet'){
    event.preventDefault();event.stopImmediatePropagation();
-   document.getElementById('environmentStatus').textContent='Transactions are available in Devnet only.';
+   const s=document.getElementById('environmentStatus');if(s)s.textContent='Transactions are available in Devnet only.';
   }
+ },true);
+}
+// Prevent changing the feed to the wrong network using programmatic clicks or keyboard input.
+for(const [id,expected] of [['mainnetTab','mainnet'],['devnetTab','devnet']]){
+ document.getElementById(id)?.addEventListener('click',event=>{
+  if(activeEnvironment!==expected){event.preventDefault();event.stopImmediatePropagation();}
  },true);
 }
 window.addEventListener('hashchange',route);
