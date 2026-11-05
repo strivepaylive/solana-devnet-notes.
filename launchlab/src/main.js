@@ -73,6 +73,7 @@ function renderRadar(){
  const node=el('feedList');node.replaceChildren();
  const items=currentItems().slice(0,48);
  if(!items.length){
+  if(!app.selected){const chart=el('marketChartPanel');if(chart)chart.hidden=true;}
   const empty=document.createElement('div');empty.className='feed-empty';
   empty.textContent=app.mode==='devnet'
    ?'Watching devnet LaunchLab account changes. No new pool changes have been observed during this session. For existing devnet pools, paste a mint in Safety Lab.'
@@ -129,6 +130,10 @@ function renderMarketChart(item){
  iframe.loading='lazy';iframe.referrerPolicy='strict-origin-when-cross-origin';
  iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0&interval='+encodeURIComponent(interval);
  frame.replaceChildren(iframe);
+ const fallback=document.createElement('div');fallback.className='chart-fallback';
+ const hint=document.createElement('span');hint.textContent='Chart not loading in your browser?';
+ const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View live chart on GeckoTerminal';
+ fallback.append(hint,link);frame.append(fallback);
  el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · SOL mainnet';
  el('marketChartExternal').href=url;
  panel.hidden=false;
@@ -244,11 +249,11 @@ function initDevnet(){
  });
 }
 el('mainnetTab').addEventListener('click',()=>{
- app.mode='mainnet';el('mainnetTab').classList.add('active');el('devnetTab').classList.remove('active');
+ app.mode='mainnet';if(app.selected?.network!=='mainnet'){app.selected=null;el('marketChartPanel').hidden=true;}el('mainnetTab').classList.add('active');el('devnetTab').classList.remove('active');
  el('liveStatus').textContent='Mainnet newly indexed pools · roughly 60s source cache';renderRadar();
 });
 el('devnetTab').addEventListener('click',()=>{
- app.mode='devnet';el('devnetTab').classList.add('active');el('mainnetTab').classList.remove('active');
+ app.mode='devnet';if(app.selected?.network!=='devnet'){app.selected=null;el('marketChartPanel').hidden=true;}el('devnetTab').classList.add('active');el('mainnetTab').classList.remove('active');
  el('liveStatus').textContent='Streaming Raydium LaunchLab devnet pool changes when RPC permits';el('marketChartPanel').hidden=true;el('marketChartFrame').replaceChildren();renderRadar();
 });
 el('refreshPools').addEventListener('click',refreshPools);
