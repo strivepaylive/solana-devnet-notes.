@@ -277,12 +277,25 @@ function readSocial(){
  }
  return result;
 }
+const chainBoxes=()=>Array.from(document.querySelectorAll('input[name="chain"]'));
+function selectedChains(){return chainBoxes().filter(x=>x.checked).map(x=>x.value)}
+function updateChains(){
+ const names={solana:'Solana devnet',ethereum:'Ethereum',bnb:'BNB Chain',base:'Base',arbitrum:'Arbitrum',polygon:'Polygon'};
+ const chosen=selectedChains();
+ el('chainSummary').textContent=chosen.length===0?'Choose at least one network.':
+ chosen.some(x=>x!=='solana')?chosen.map(x=>names[x]).join(' + ')+' · Preview only: multi-chain contracts and fee aggregation are not deployed.':
+ 'Solana devnet selected · network costs are confirmed in your wallet, not estimated here.';
+}
+chainBoxes().forEach(x=>x.addEventListener('change',updateChains));
+updateChains();
 function readCreate(){
  const raw={name:el('tokenName').value,symbol:el('tokenTicker').value,quote:el('launchQuote').value,
   metadataUrl:el('metadataUrl').value.trim(),configId:el('configId').value.trim()};
  const validation=validateLaunch({...raw,metadataUrl:raw.metadataUrl||'https://example.com/temporary.json'});
  const errors=validation.errors.filter(x=>!x.includes('metadata'));
  if(errors.length)throw Error(errors.join(' '));
+ const chains=selectedChains();
+ if(chains.length!==1||chains[0]!=='solana')throw Error('Only Solana devnet deployment is enabled. Multi-chain launch requires audited contracts and fee aggregation.');
  const socials=readSocial();
  return {...raw,name:validation.name,symbol:validation.symbol,description:el('tokenDescription').value.trim(),socials};
 }
@@ -375,6 +388,45 @@ async function configureMetadataPublisher(){
   toast('Protected image publishing is available.');
  }catch{}
 }
+// Original Momentum sonic identity: three rising soft harmonic tones followed by a glass-like resolving chord.
+// All tones are synthesized locally. No borrowed Exodus/Discord audio, no autoplay, no remote sound assets.
+let soundContext=null;
+function sonicSignature(kind='success'){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+  soundContext ||=new Ctx();soundContext.resume().catch(()=>{});
+  const ctx=soundContext,now=ctx.currentTime+.035;
+  const notes=kind==='success'?[392,493.88,587.33,783.99]:[329.63,440,493.88];
+  notes.forEach((frequency,index)=>{
+   const start=now+index*.105;
+   [1,2.01,3.02].forEach((harmonic,j)=>{
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();
+    osc.type='sine';osc.frequency.setValueAtTime(frequency*harmonic,start);
+    filter.type='lowpass';filter.frequency.value=kind==='success'?4500:2700;
+    const volume=(kind==='success'?.12:.075)/((j+1)*1.4);
+    gain.gain.setValueAtTime(.0001,start);
+    gain.gain.exponentialRampToValueAtTime(volume,start+.025);
+    gain.gain.exponentialRampToValueAtTime(.0001,start+(index===notes.length-1?.78:.43));
+    osc.connect(filter).connect(gain).connect(ctx.destination);
+    osc.start(start);osc.stop(start+(index===notes.length-1?.8:.46));
+   });
+  });
+ }catch{}
+}
+el('previewSound').addEventListener('click',()=>sonicSignature('success'));
+const slide=el('launchSlide'),fill=el('sliderFill'),slideLabel=el('sliderLabel');
+function resetSlider(){slide.value=0;fill.style.width='0%';slideLabel.textContent='Slide to review & launch →'}
+slide.addEventListener('input',()=>{
+ const value=Number(slide.value);fill.style.width=value+'%';
+ slideLabel.textContent=value>=95?'Release to review your launch':'Slide to review & launch →';
+});
+slide.addEventListener('change',()=>{
+ if(Number(slide.value)<95){resetSlider();return}
+ resetSlider();
+ if(app.busy)return;
+ const submit=el('createBtn');
+ if(typeof el('createForm').requestSubmit==='function')el('createForm').requestSubmit(submit);
+});
 el('createForm').addEventListener('submit',async event=>{
  event.preventDefault();if(app.busy)return;busy(true);
  try{
@@ -393,6 +445,7 @@ el('createForm').addEventListener('submit',async event=>{
   preview.append(document.createElement('br'),anchor);
   el('tradeMint').value=created.mint;
   el('tradeQuote').value=values.quote;
+  sonicSignature('success');
   message('Devnet launch request completed. Verify the transaction and mint on-chain.','ok');
  }catch(error){fail(error)}
  finally{busy(false)}
