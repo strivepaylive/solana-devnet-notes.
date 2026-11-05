@@ -802,13 +802,6 @@ el('pnlSaveVideo')?.addEventListener('click',async()=>{
 // Device-level preference draft; never treated as marketing consent or server subscription.
 try{const p=JSON.parse(localStorage.getItem('momentum-callout-preferences')||'{}');el('calloutProduct').checked=!!p.product;el('calloutWeekly').checked=!!p.weekly}catch{}
 el('calloutSave')?.addEventListener('click',()=>{try{localStorage.setItem('momentum-callout-preferences',JSON.stringify({product:el('calloutProduct').checked,weekly:el('calloutWeekly').checked}));toast('Saved on this device. Email subscriptions are not active yet.')}catch{toast('Could not save device preferences.')}});
-+Number(data.priceUsd).toLocaleString('en-US',{maximumSignificantDigits:8});
-  el('livePoolChange').textContent=data.change5m===null?'5m change unavailable':'5m '+(data.change5m>0?'+':'')+data.change5m.toFixed(2)+'%';
-  el('livePoolUpdated').textContent='Snapshot '+new Date(data.checkedAt).toLocaleTimeString();
- }catch{if(seq===priceSequence)el('livePoolUpdated').textContent='Price feed temporarily unavailable'}
-}
-setInterval(()=>{if(!document.hidden)refreshLivePrice()},12000);
-
 function chartMessage(frame,message){frame.replaceChildren();const p=document.createElement('p');p.className='native-chart-empty';p.textContent=message;frame.append(p)}
 function paintCandles(frame,rows){
  const candles=rows.filter(x=>Array.isArray(x)&&x.length>=5&&x.slice(0,5).every(v=>Number.isFinite(Number(v)))).slice(-90);
