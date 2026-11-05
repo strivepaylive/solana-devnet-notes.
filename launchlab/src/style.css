@@ -164,3 +164,7 @@ button:focus-visible,a:focus-visible{outline-color:#ffb46d}
 body[data-experience='landing']>.ambient,body[data-experience='choose']>.ambient{display:none}
 @media(max-width:640px){.choose-grid{grid-template-columns:1fr}.gateway-content h1{font-size:clamp(48px,13vw,76px)}.choose-card{gap:9px}.choose-card strong{font-size:29px}}
 @media(prefers-reduced-motion:reduce){.gateway-meteor{animation:none}}
+
+/* Route-specific workspace isolation. Never expose Devnet actions as Mainnet actions. */
+body[data-experience="mainnet"] #launch,body[data-experience="mainnet"] #trade,body[data-experience="mainnet"] #devnetFaucetLink{display:none!important}
+body[data-experience="mainnet"] .devnet-pill{display:none!important}
