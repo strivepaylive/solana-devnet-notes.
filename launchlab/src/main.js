@@ -112,7 +112,26 @@ function renderRadar(){
 function scoreResponse(risk){
  return risk?.status==='warning'?'warning':risk?.status==='review'?'review':'unverified';
 }
+function renderMarketChart(item){
+ const panel=el('marketChartPanel'),frame=el('marketChartFrame');
+ if(!panel||!frame)return;
+ // GeckoTerminal embeds only real indexed mainnet pools. Never fabricate candles.
+ if(item.network!=='mainnet'||!isPublicKey(item.pool)){
+  panel.hidden=true;frame.replaceChildren();return;
+ }
+ const pool=encodeURIComponent(item.pool);
+ const url='https://www.geckoterminal.com/solana/pools/'+pool;
+ const iframe=document.createElement('iframe');
+ iframe.title='Live GeckoTerminal price chart for '+String(item.symbol||'token');
+ iframe.loading='lazy';iframe.referrerPolicy='strict-origin-when-cross-origin';
+ iframe.allow='fullscreen';iframe.src=url+'?embed=1&info=0&swaps=0';
+ frame.replaceChildren(iframe);
+ el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · SOL mainnet';
+ el('marketChartExternal').href=url;
+ panel.hidden=false;
+}
 function renderDetail(item){
+ renderMarketChart(item);
  const node=el('tokenDetail');
  const risk=app.risks.get(item.network+'|'+item.mint);
  const rows=[];

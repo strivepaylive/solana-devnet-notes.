@@ -177,3 +177,20 @@ body[data-experience="devnet"] #mainnetTab{display:none!important}
 .test-sol-button{border:1px solid #ffb46d;border-radius:999px;padding:8px 12px;color:#ffca9c;background:transparent;font-size:12px;font-weight:700;cursor:pointer}
 .test-sol-button:hover{background:#ffb46d1a}.test-sol-button:disabled{opacity:.55;cursor:wait}
 body[data-experience="mainnet"] #requestTestSol{display:none!important}
+
+/* Purpose-built SVG arrows, chart and responsive trading workspace */
+.momentum-arrow{display:inline-block;width:19px;height:19px;vertical-align:middle;flex-shrink:0;transition:transform .22s ease}
+a:hover>.momentum-arrow,button:hover>.momentum-arrow{transform:translateX(4px)}
+.back-arrow{margin-right:6px}.choose-back:hover>.back-arrow,.environment-back:hover>.back-arrow{transform:translateX(-4px)}
+.gateway-primary{justify-content:space-between;min-width:min(310px,100%);box-sizing:border-box;box-shadow:0 15px 65px #ffb46d25}
+.gateway-content h1{font-size:clamp(44px,7vw,88px);max-width:840px;line-height:1.08}
+.gateway-content{padding-top:90px;padding-bottom:90px}
+.gateway-meteor{will-change:translate,opacity}
+.market-chart-panel{margin:22px 0 28px;border:1px solid #4b405f;border-radius:22px;overflow:hidden;background:#0a0d18;padding:18px}
+.market-chart-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+.market-chart-top h3{margin:8px 0 0;font-size:clamp(16px,2.4vw,23px)}
+.market-chart-top a{display:inline-flex;align-items:center;gap:6px;color:#ffca9c;text-decoration:none;font-size:13px;font-weight:700}
+.market-chart-frame{height:clamp(330px,55vw,540px);background:#0c1020;border-radius:12px;overflow:hidden}
+.market-chart-frame iframe{width:100%;height:100%;border:0;display:block}
+#marketChartNote{color:#bdb5cc;font-size:12px;margin:12px 0 0}
+@media(max-width:640px){.gateway-content{padding:85px 24px}.gateway-content h1{font-size:clamp(43px,10vw,64px);letter-spacing:-.065em}.gateway-kicker{font-size:10px;letter-spacing:.15em}.gateway-primary{width:100%;max-width:330px}.market-chart-panel{padding:12px}.market-chart-frame{height:390px}}
