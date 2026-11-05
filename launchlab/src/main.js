@@ -618,7 +618,7 @@ setInterval(refreshPools,45000);
 setInterval(refreshNews,5*60000);
 
 // Route screens are mutually exclusive: home is not the token creation, feed or account page.
-const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support']);
+const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support','pnl']);
 function navigateMomentum(){
  const requested=location.hash.slice(1).split('?')[0];
  const route=momentumRoutes.has(requested)?requested:'top';
@@ -629,7 +629,7 @@ function navigateMomentum(){
   if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
  });
  document.querySelectorAll('.mobile-tabbar a').forEach(link=>{const active=link.dataset.tab===route;link.classList.toggle('active-route',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
- document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',support:'Support'}[route]+' — Momentum'));
+ document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',pnl:'P&L Studio',support:'Support'}[route]+' — Momentum'));
  window.scrollTo({top:0,behavior:'instant'});
 }
 window.addEventListener('hashchange',navigateMomentum);
@@ -657,3 +657,26 @@ updateAccessState();
 // Prevent accidental transactions from being presented as a sign-in requirement.
 el('createForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
 el('tradeForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
+
+// Theme is a device preference only, not a synced account setting.
+const themeToggle=el('themeToggle');
+function setMomentumTheme(mode){document.documentElement.dataset.theme=mode;themeToggle.textContent=mode==='light'?'☾ Dark':'☀ Light';themeToggle.setAttribute('aria-label',mode==='light'?'Switch to dark theme':'Switch to light theme');themeToggle.setAttribute('aria-pressed',String(mode==='light'));try{localStorage.setItem('momentum-theme',mode)}catch{}}
+let savedTheme='dark';try{savedTheme=localStorage.getItem('momentum-theme')||'dark'}catch{}
+setMomentumTheme(savedTheme==='light'?'light':'dark');
+themeToggle.addEventListener('click',()=>setMomentumTheme(document.documentElement.dataset.theme==='light'?'dark':'light'));
+// Local P&L media studio: user-supplied numbers are explicitly unverified.
+let pnlObjectURL=null;
+function pnlValues(){const cost=Number(el('pnlCost').value)||0,value=Number(el('pnlValue').value)||0,profit=value-cost,pct=cost>0?profit/cost*100:0;return {token:el('pnlToken').value.trim().slice(0,32)||'YOUR TOKEN',cost,value,profit,pct}}
+function drawPnl(ctx,width=1080,height=1080){const {token,profit,pct}=pnlValues(),w=width,h=height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#081811');grad.addColorStop(1,'#203d2d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.strokeStyle='#9de6a7';ctx.lineWidth=3;ctx.strokeRect(36,36,w-72,h-72);ctx.fillStyle='#d8ff9b';ctx.font='bold 42px system-ui';ctx.fillText('✦ MOMENTUM',75,145);ctx.fillStyle='#f1fff0';ctx.font='bold 76px system-ui';ctx.fillText(token,75,330,w-150);ctx.fillStyle=profit>=0?'#b9ff91':'#ff9d9d';ctx.font='bold 130px system-ui';ctx.fillText((pct>=0?'+':'')+pct.toFixed(2)+'%',75,540,w-150);ctx.fillStyle='#d5ead5';ctx.font='bold 44px system-ui';ctx.fillText('P&L: '+(profit>=0?'+':'-')+'$'+Math.abs(profit).toFixed(2),75,640,w-150);ctx.font='28px system-ui';ctx.fillText('USER-ENTERED · NOT VERIFIED',75,h-110,w-150)}
+function makePnlCanvas(){const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;drawPnl(canvas.getContext('2d'));return canvas}
+function updatePnl(){const {token,profit,pct}=pnlValues();el('pnlPreviewToken').textContent=token;el('pnlPreviewValue').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';el('pnlPreviewValue').style.color=profit>=0?'#d9ff9a':'#ff9999';el('pnlPreviewProfit').textContent='Profit / Loss: '+(profit>=0?'+':'-')+'$'+Math.abs(profit).toFixed(2)}
+['pnlToken','pnlCost','pnlValue'].forEach(id=>el(id)?.addEventListener('input',updatePnl));
+el('pnlVideo')?.addEventListener('change',()=>{if(pnlObjectURL)URL.revokeObjectURL(pnlObjectURL);const file=el('pnlVideo').files?.[0],video=el('pnlVideoPreview');pnlObjectURL=file?URL.createObjectURL(file):null;video.hidden=!file;if(file)video.src=pnlObjectURL;else video.removeAttribute('src');el('pnlStatus').textContent=file?'Video loaded locally: '+file.name+'. Export depends on device and browser support.':'Select a video to include it in the export.'});
+el('pnlSaveImage')?.addEventListener('click',()=>{const canvas=makePnlCanvas();canvas.toBlob(blob=>{if(!blob){toast('Image export unavailable.');return}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='momentum-pnl.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),15000)},'image/png')});
+el('pnlSaveVideo')?.addEventListener('click',async()=>{
+ const video=el('pnlVideoPreview'),file=el('pnlVideo').files?.[0];if(!file){toast('Choose a video first.');return}
+ if(!HTMLCanvasElement.prototype.captureStream||typeof MediaRecorder==='undefined'){toast('Video export is unsupported on this browser. Try desktop Chrome.');return}
+ const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;const ctx=canvas.getContext('2d');const stream=canvas.captureStream(24);let recorder,parts=[];
+ try{const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw Error('No supported video recording format');recorder=new MediaRecorder(stream,{mimeType:mime});recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};recorder.onstop=()=>{const blob=new Blob(parts,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='momentum-pnl-video.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);el('pnlStatus').textContent='Export completed. Save the file from your browser downloads.'};await video.play();recorder.start(1000);el('pnlStatus').textContent='Exporting while video plays. Keep this page open.';let active=true;const paint=()=>{if(!active)return;ctx.fillStyle='#08140d';ctx.fillRect(0,0,720,1280);if(video.readyState>=2){const scale=Math.max(720/video.videoWidth,940/video.videoHeight),vw=video.videoWidth*scale,vh=video.videoHeight*scale;ctx.drawImage(video,(720-vw)/2,0,vw,vh)}const card=makePnlCanvas();ctx.drawImage(card,40,940,640,300);if(!video.ended&&recorder.state==='recording')requestAnimationFrame(paint)};paint();video.addEventListener('ended',()=>{active=false;if(recorder.state==='recording')recorder.stop();stream.getTracks().forEach(t=>t.stop())},{once:true});
+ }catch(error){stream.getTracks().forEach(t=>t.stop());el('pnlStatus').textContent='Video export unavailable: '+error.message}
+});
