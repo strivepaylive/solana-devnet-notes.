@@ -1,141 +1,47 @@
-import {connect, disconnect, connectedAddress, verifyConfig, createToken, inspectPool, tradeToken} from './chain.js';
-import {validateLaunch, isPublicKey, toAtomic, QUOTES} from './validation.js';
-const el = id => document.getElementById(id);
-let busy = false;
-function message(text, level = '') {
-  el('status').textContent = text;
-  el('status').className = 'status ' + level;
+import {connect,disconnect,connectedAddress,verifyConfig,createToken,inspectPool,tradeToken,connection} from './chain.js';
+import {validateLaunch,isPublicKey} from './validation.js';
+import {loadMainnetPools,loadNews,loadRisk,observeDevnetLaunches,formatMoney} from './live.js';
+const $=id=>document.getElementById(id);
+const text=(id,value)=>{$(id).textContent=String(value??'')};
+const item=(tag,value,className)=>{const e=document.createElement(tag);e.textContent=String(value??'');if(className)e.className=className;return e};
+let busy=false,feed='mainnet',mainnet=[],devnet=[],streamStop=null,toastTimer;
+function notify(s){const e=$('toast');e.textContent=s;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),5000)}
+function short(s){return s?String(s).slice(0,5)+'…'+String(s).slice(-5):'—'}
+function badge(status){return item('span',status==='warning'?'⚠ Elevated risk':status==='review'?'◇ Needs review':'◎ Unverified','risk-badge '+(status==='warning'?'warn':status==='review'?'review':'unknown'))}
+function sound(){if(!$('soundToggle').checked)return;try{const c=new AudioContext(),o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=460;g.gain.value=.08;o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.2);o.onended=()=>c.close()}catch{}}
+function locked(v){busy=v;for(const id of ['walletBtn','createBtn','verifyConfigBtn','inspectBtn','tradeBtn'])$(id).disabled=v}
+async function action(fn){if(busy)return;locked(true);try{await fn()}catch(e){notify('Action stopped: '+(e?.message||e))}finally{locked(false)}}
+function riskView(result,where){where.replaceChildren(badge(result.status));const list=item('ul','','detail-list');for(const s of result.signals||[])list.append(item('li',s.message));where.append(list,item('p','No risk badge certifies that a token is safe.')) ;if(result.status==='warning')sound()}
+async function scan(mint,network,where){where.replaceChildren(item('p','Checking on-chain risk signals…'));try{riskView(await loadRisk(mint,network),where)}catch(e){where.replaceChildren(badge('unverified'),item('p','Risk screening unavailable: '+e.message))}}
+function details(token){
+ const e=$('tokenDetail');e.replaceChildren(item('div','TOKEN INTELLIGENCE / '+token.network.toUpperCase(),'card-eyebrow'),item('h3',token.name+' · '+token.symbol),badge('unverified'),item('p',token.mint,'detail-meta'));
+ const stats=item('div','','detail-stats');for(const [label,value] of [['Liquidity',formatMoney(token.liquidityUsd)],['Market cap',formatMoney(token.marketCapUsd)],['FDV',formatMoney(token.fdvUsd)],['24h volume',formatMoney(token.volume24hUsd)],['Bonding curve',token.progress==null?'Not available':token.progress.toFixed(1)+'%']]){const box=item('div');box.append(item('small',label),item('b',value));stats.append(box)}e.append(stats,item('p','Source: '+token.source+'. Missing information is not proof of safety.'));
+ const a=item('a','View token on Solana Explorer ↗','mini-link');a.href='https://explorer.solana.com/address/'+encodeURIComponent(token.mint)+(token.network==='devnet'?'?cluster=devnet':'');a.target='_blank';a.rel='noopener noreferrer';e.append(a);
+ const risk=item('div');e.append(risk);scan(token.mint,token.network==='devnet'?'devnet':'mainnet',risk);
+ $('scanMint').value=token.mint;$('scanNetwork').value=token.network==='devnet'?'devnet':'mainnet';
 }
-function details(container, lines) {
-  el(container).textContent = lines.join('\n');
-}
-function setBusy(next) {
-  busy = next;
-  for (const id of ['walletBtn','createBtn','verifyConfigBtn','inspectBtn','tradeBtn']) el(id).disabled = next;
-}
-function fail(error) {
-  const messageText = error?.message || String(error);
-  message('Operation stopped: ' + messageText, 'error');
-}
-function addressPreview(value) {return value ? value.slice(0,5) + '…' + value.slice(-5) : '—';}
-el('walletBtn').addEventListener('click', async () => {
-  if (busy) return;
-  setBusy(true);
-  try {
-    if (connectedAddress()) {
-      await disconnect();
-      el('walletBtn').textContent = 'Connect wallet';
-      message('Wallet disconnected.', 'ok');
-    } else {
-      const address = await connect();
-      el('walletBtn').textContent = addressPreview(address) + ' · disconnect';
-      message('Connected: ' + address + '\nOnly devnet transactions are available.', 'ok');
-    }
-  } catch (error) {fail(error)}
-  finally {setBusy(false)}
-});
-function readCreate() {
-  const raw = {name: el('tokenName').value, symbol: el('tokenTicker').value,
-    metadataUrl: el('metadataUrl').value, quote: el('launchQuote').value,
-    configId: el('configId').value.trim()};
-  const validation = validateLaunch(raw);
-  if (!validation.ok) throw Error(validation.errors.join(' '));
-  return {...raw, name:validation.name, symbol:validation.symbol, metadataUrl:validation.metadataUrl};
-}
-async function checkedConfig(quote, configId) {
-  const config = await verifyConfig(quote, configId);
-  details('configPreview', [
-    'Verified Raydium devnet program: ' + config.programId,
-    'Config account: ' + config.configId,
-    'Quote mint: ' + config.quoteMint,
-    'Quote decimals: ' + config.decimals,
-    config.platformNote
-  ]);
-  return config;
-}
-el('verifyConfigBtn').addEventListener('click', async () => {
-  if (busy) return;
-  setBusy(true);
-  try {
-    message('Checking program owner, config account, quote mint and decimals on devnet…');
-    await checkedConfig(el('launchQuote').value, el('configId').value.trim());
-    message('Raydium devnet configuration was found. No token has been created.', 'ok');
-  } catch (error) {fail(error)}
-  finally {setBusy(false)}
-});
-el('launchQuote').addEventListener('change', () => {
-  el('configPreview').textContent = 'Quote changed. Re-verify the on-chain config before creating a token.';
-});
-el('createForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (busy) return;
-  setBusy(true);
-  try {
-    const values = readCreate();
-    if (!connectedAddress()) throw Error('Connect a wallet first.');
-    message('Verifying configuration, then preparing a devnet token creation transaction…');
-    await checkedConfig(values.quote, values.configId);
-    const response = await createToken(values);
-    const explorer = 'https://explorer.solana.com/address/' + encodeURIComponent(response.mint) + '?cluster=devnet';
-    el('results').replaceChildren();
-    const a = document.createElement('a');
-    a.href = explorer; a.rel = 'noopener noreferrer'; a.target = '_blank';
-    a.textContent = 'View new mint: ' + response.mint;
-    el('results').append(a);
-    el('tradeMint').value = response.mint;
-    el('tradeQuote').value = values.quote;
-    message('Devnet token creation submitted and confirmed by the SDK.\nMint: ' + response.mint + '\nPool: ' + (response.pool || 'Verify on-chain'), 'ok');
-  } catch (error) {fail(error)}
-  finally {setBusy(false)}
-});
-async function checkedPool() {
-  const mint = el('tradeMint').value.trim();
-  if (!isPublicKey(mint)) throw Error('Enter a valid Solana mint public key.');
-  if (!connectedAddress()) throw Error('Connect your wallet to inspect Raydium LaunchLab pools.');
-  const pool = await inspectPool(mint, el('tradeQuote').value);
-  details('poolPreview', [
-    'On-chain Raydium devnet pool: ' + pool.pool.toBase58(),
-    'Token decimals: ' + pool.decimals,
-    'Pool status code: ' + pool.status,
-    'Platform config: ' + pool.platform,
-    'Momentum 2% fee config not established'
-  ]);
-  return pool;
-}
-el('inspectBtn').addEventListener('click', async () => {
-  if (busy) return;
-  setBusy(true);
-  try {
-    message('Reading Raydium devnet pool from Solana RPC…');
-    await checkedPool();
-    message('Pool discovered. Read its details carefully before placing a devnet order.', 'ok');
-  } catch (error) {fail(error)}
-  finally {setBusy(false)}
-});
-function updateAmountHint() {
-  const quote=el('tradeQuote').value, side=el('tradeSide').value;
-  el('amountHint').textContent = side === 'buy'
-    ? 'Enter ' + quote + ' to spend. Preview values and minimum received units in your wallet before approval.'
-    : 'Enter tokens to sell. Decimals are read from the token mint on devnet.';
-}
-el('tradeQuote').addEventListener('change', updateAmountHint);
-el('tradeSide').addEventListener('change', updateAmountHint);
-el('tradeForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (busy) return;
-  setBusy(true);
-  try {
-    const mintAddress=el('tradeMint').value.trim();
-    const quote=el('tradeQuote').value, side=el('tradeSide').value;
-    if (!connectedAddress()) throw Error('Connect a wallet first.');
-    const pool=await checkedPool();
-    const amount=el('tradeAmount').value.trim();
-    const units=toAtomic(amount,side==='buy'?QUOTES[quote].decimals:pool.decimals);
-    const label=side==='buy'?'spending':'selling';
-    message('Preparing devnet ' + side + ' for ' + label + ' ' + amount + ' ' +
-      (side==='buy'?quote:'tokens') + ' (' + units + ' atomic units).\nApprove only after reviewing wallet transaction details.');
-    const result=await tradeToken({mintAddress, quote, side, amount});
-    message('Devnet ' + side + ' submitted and confirmed by Raydium SDK.\nPool: ' + result.pool, 'ok');
-  } catch (error) {fail(error)}
-  finally {setBusy(false)}
-});
+function render(){const e=$('feedList');e.replaceChildren();const tokens=feed==='mainnet'?mainnet:devnet;if(!tokens.length){e.append(item('div','No new tokens reported yet. Sources may be delayed or unavailable.','feed-empty'));return}
+ for(const token of tokens){const row=item('button','','token-row');row.type='button';row.append(item('div',(token.symbol||'?').slice(0,2).toUpperCase(),'token-avatar'));const info=item('div','','token-row-info');info.append(item('strong',token.name),item('small',token.symbol+' · '+short(token.mint)));row.append(info);const value=item('div','','token-values');value.append(item('strong',formatMoney(token.liquidityUsd)),item('small','Risk: unverified'));row.append(value);row.addEventListener('click',()=>details(token));e.append(row)}}
+async function pools(){try{const d=await loadMainnetPools();mainnet=d.pools;text('feedTime',new Date(d.checkedAt).toLocaleTimeString());if(feed==='mainnet'){text('liveStatus','Mainnet new pools · upstream feed may lag');render()}}catch(e){if(feed==='mainnet'){text('liveStatus','Market feed unavailable: '+e.message);render()}}}
+async function news(){const e=$('newsGrid');e.replaceChildren(item('div','Loading industry headlines…','feed-empty'));try{const articles=await loadNews();e.replaceChildren();if(!articles.length)e.append(item('div','No qualifying recent headlines.','feed-empty'));for(const a of articles){const link=item('a','','news-card');link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';link.append(item('span',a.category,'news-tag'),item('h3',a.title),item('small',a.domain+' · '+new Date(a.publishedAt).toLocaleString()));e.append(link)}}catch(e){$('newsGrid').replaceChildren(item('div','News feed unavailable: '+e.message,'feed-empty'))}}
+for(const [id,value] of [['mainnetTab','mainnet'],['devnetTab','devnet']])$(id).addEventListener('click',()=>{feed=value;$('mainnetTab').classList.toggle('active',feed==='mainnet');$('devnetTab').classList.toggle('active',feed==='devnet');text('liveStatus',feed==='mainnet'?'Mainnet new pools':'Listening for Raydium devnet changes…');render()});
+$('refreshPools').addEventListener('click',pools);$('refreshNews').addEventListener('click',news);
+function connected(address){text('walletBtn',address?short(address)+' · Disconnect':'Connect wallet ↗');text('profileAddress',address||'Connect a wallet to set a local profile.');text('profileName',address?(localStorage.getItem('momentum-profile-'+address)||'Explorer '+short(address)):'Explorer #0000');text('walletBalance',address?'Checking devnet SOL balance…':'Connect a wallet to see your devnet balance.');if(address)text('walletBalance','Connected public address: '+address+' · Devnet');}
+$('walletBtn').addEventListener('click',()=>action(async()=>{if(connectedAddress()){await disconnect();connected(null);notify('Wallet disconnected')}else{const a=await connect();connected(a);notify('Connected '+short(a))}}));
+$('createForm').addEventListener('submit',e=>{e.preventDefault();action(async()=>{if(!connectedAddress())throw Error('Connect a wallet first');const raw={name:$('tokenName').value,symbol:$('tokenTicker').value,metadataUrl:$('metadataUrl').value,quote:$('launchQuote').value,configId:$('configId').value.trim()};const v=validateLaunch(raw);if(!v.ok)throw Error(v.errors.join(' '));const c=await verifyConfig(raw.quote,raw.configId);text('configPreview','Raydium devnet config: '+c.configId+'\n'+c.platformNote);const result=await createToken({...raw,name:v.name,symbol:v.symbol,metadataUrl:v.metadataUrl});text('configPreview','Devnet mint created: '+result.mint+'\nPool: '+(result.pool||'Check Explorer'));$('tradeMint').value=result.mint;notify('Devnet token submitted: '+short(result.mint))})});
+$('verifyConfigBtn').addEventListener('click',()=>action(async()=>{const c=await verifyConfig($('launchQuote').value,$('configId').value.trim());text('configPreview','Config: '+c.configId+'\nQuote: '+c.quoteMint+'\n'+c.platformNote)}));
+for(const [id,out,prefix] of [['tokenName','previewName',''],['tokenTicker','previewTicker','$'],['tokenDescription','previewDescription','']])$(id).addEventListener('input',()=>text(out,prefix+$(id).value));
+$('tokenImage').addEventListener('change',()=>{const f=$('tokenImage').files?.[0];if(!f)return;if(f.size>1048576||!['image/png','image/jpeg','image/webp'].includes(f.type)){notify('PNG/JPEG/WebP, max 1 MB');return}const url=URL.createObjectURL(f);for(const id of ['imagePreview','previewCoinIcon']){$(id).style.backgroundImage='url("'+url+'")';text(id,'')}notify('Preview only. Public metadata hosting is still required for launch.')});
+$('scanForm').addEventListener('submit',e=>{e.preventDefault();const mint=$('scanMint').value.trim();if(!isPublicKey(mint))return notify('Invalid Solana mint');scan(mint,$('scanNetwork').value,$('scanResults'))});
+$('soundToggle').addEventListener('change',()=>{if($('soundToggle').checked){sound();notify('Warning sounds enabled')}});
+$('inspectBtn').addEventListener('click',()=>action(async()=>{const p=await inspectPool($('tradeMint').value.trim(),$('tradeQuote').value);text('poolPreview','Pool: '+p.pool.toBase58()+'\nPlatform: '+p.platform+'\nStatus: '+p.status)}));
+$('tradeForm').addEventListener('submit',e=>{e.preventDefault();action(async()=>{if(!connectedAddress())throw Error('Connect wallet first');const p=await tradeToken({mintAddress:$('tradeMint').value.trim(),quote:$('tradeQuote').value,side:$('tradeSide').value,amount:$('tradeAmount').value.trim()});notify('Devnet transaction submitted: '+short(p.pool))})});
+$('tradeSide').addEventListener('change',()=>text('amountHint',$('tradeSide').value==='buy'?'Amount to spend in quote currency.':'Amount of tokens to sell.'));
+$('saveProfile').addEventListener('click',()=>{const a=connectedAddress(),name=$('profileDisplayName').value.trim();if(!a)return notify('Connect wallet first');if(!name||name.length>24)return notify('Enter a name up to 24 characters');localStorage.setItem('momentum-profile-'+a,name);text('profileName',name);notify('Nickname saved locally; not a verified public profile')});
+$('signProfile').addEventListener('click',()=>notify('Verified login requires a server-issued challenge; not yet enabled.'));
+$('createPlatformBtn').addEventListener('click',()=>notify('2% fee setup requires verified owner configuration and security review; disabled.'));
+const tour=[['Welcome to Momentum','Discover new pools and inspect token risk signals.','discover'],['Create a token','Enter a name, ticker and community links. Devnet launch requires public metadata.','launch'],['Risk radar','Inspect on-chain warnings. Unverified does not mean safe.','signals'],['News','Follow crypto-related headlines from independent publishers.','news'],['Wallet safety','Never share a recovery phrase or private key.','profile']];let step=0;
+function showTour(){const [name,description,target]=tour[step];$('mentorBubble').hidden=false;text('mentorText',name+'. '+description);$(target).scrollIntoView({behavior:'smooth'})}
+$('mentorOrb').addEventListener('click',showTour);$('startTour').addEventListener('click',()=>{step=0;showTour()});$('mentorNext').addEventListener('click',()=>{step=(step+1)%tour.length;showTour()});$('mentorClose').addEventListener('click',()=>{$('mentorBubble').hidden=true;window.speechSynthesis?.cancel()});$('mentorSpeak').addEventListener('click',()=>{if(!window.speechSynthesis)return notify('Speech not available');window.speechSynthesis.cancel();window.speechSynthesis.speak(new SpeechSynthesisUtterance($('mentorText').textContent))});
+const deposit=item('div','','panel');deposit.style.marginTop='16px';deposit.append(item('h3','Receive Solana assets'),item('p','Use your connected wallet public address to receive assets on the matching network. This test site shows devnet only. Never send real funds to a devnet-only test flow.'));const balance=item('div','Connect wallet to view address.','hint');balance.id='walletBalance';deposit.append(balance);const copy=item('button','Copy connected public address','secondary');copy.type='button';copy.addEventListener('click',async()=>{if(!connectedAddress())return notify('Connect wallet first');await navigator.clipboard.writeText(connectedAddress());notify('Address copied. Verify the sending network.')});deposit.append(copy);$('profile').append(deposit);
+pools();news();streamStop=observeDevnetLaunches(t=>{if(devnet.some(x=>x.pool===t.pool))return;devnet.unshift(t);devnet=devnet.slice(0,48);if(feed==='devnet')render()},s=>{if(feed==='devnet')text('liveStatus',s)});setInterval(pools,45000);setInterval(news,180000);window.addEventListener('beforeunload',()=>streamStop?.());
