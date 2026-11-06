@@ -17,6 +17,10 @@ function setEnvironment(mode){
   button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
  }
  document.querySelectorAll('#launch,#trade,#wallet').forEach(section=>{section.hidden=isMain});
+ const walletButton=document.getElementById('walletBtn');
+ if(walletButton){walletButton.hidden=isMain;walletButton.setAttribute('aria-hidden',String(isMain));}
+ document.getElementById('walletAccessButton')?.toggleAttribute('hidden',isMain);
+ document.getElementById('walletGateConnect')?.toggleAttribute('hidden',isMain);
  // Market feeds must not cross environments. The SDK remains Devnet-only.
  document.getElementById('mainnetTab')?.toggleAttribute('hidden',!isMain);
  document.getElementById('devnetTab')?.toggleAttribute('hidden',isMain);

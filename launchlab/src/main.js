@@ -415,6 +415,7 @@ el('requestTestSol')?.addEventListener('click',async()=>{
  finally{requestingTestSol=false;button.disabled=false;button.textContent='Request 0.1 Test SOL'}
 });
 el('walletBtn').addEventListener('click',async()=>{
+ if(document.body.dataset.experience!=='devnet'){toast('Wallet connection is only available in the Devnet testing workspace.');return}
  if(app.busy)return;busy(true);
  try{
   if(connectedAddress()){
@@ -767,7 +768,7 @@ el('walletGateClose')?.addEventListener('click',hideWalletGate);
 el('walletGateBrowse')?.addEventListener('click',hideWalletGate);
 gate?.querySelector('[data-close-gate]')?.addEventListener('click',hideWalletGate);
 window.addEventListener('keydown',event=>{if(event.key==='Escape'){if(!gate.hidden)hideWalletGate();else closeMore()}});
-el('walletGateConnect')?.addEventListener('click',()=>{hideWalletGate();el('walletBtn').click()});
+el('walletGateConnect')?.addEventListener('click',()=>{if(document.body.dataset.experience!=='devnet'){toast('Mainnet wallet trading is not enabled.');return}hideWalletGate();el('walletBtn').click()});
 el('walletAccessButton')?.addEventListener('click',()=>{if(connectedAddress()){location.hash='#profile'}else showWalletGate()});
 function updateAccessState(){const address=connectedAddress();if(el('walletAccessStatus'))el('walletAccessStatus').textContent=address?'Connected: '+sym(address):'Your wallet stays in your control. Momentum never asks for your seed phrase.';if(el('walletAccessButton'))el('walletAccessButton').textContent=address?'View profile →':'Connect wallet ↗'}
 el('walletBtn').addEventListener('click',()=>setTimeout(updateAccessState,1000));
