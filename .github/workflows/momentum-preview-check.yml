@@ -1,0 +1,28 @@
+name: Momentum preview build verification
+on:
+  push:
+    branches:
+      - momentum-raydium-launchlab-devnet
+  pull_request:
+    paths:
+      - 'launchlab/**'
+      - '.github/workflows/momentum-preview-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: launchlab
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: launchlab/package-lock.json
+      - run: npm ci
+      - run: npm run build

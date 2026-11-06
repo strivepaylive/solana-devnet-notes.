@@ -1,0 +1,3 @@
+export const CHAINS=Object.freeze([{id:'solana',name:'Solana',family:'solana',chainId:null,status:'devnet'},{id:'ethereum',name:'Ethereum',family:'evm',chainId:1,status:'planned'},{id:'base',name:'Base',family:'evm',chainId:8453,status:'planned'},{id:'bnb',name:'BNB Chain',family:'evm',chainId:56,status:'planned'},{id:'arbitrum',name:'Arbitrum One',family:'evm',chainId:42161,status:'planned'}]);
+export const isEvmAddress=a=>/^0x[a-fA-F0-9]{40}$/.test(String(a||''));
+export function chainAddress({chainId,solanaAddress,evmAddress}){const c=CHAINS.find(x=>x.id===chainId);if(!c)return null;if(c.family==='evm')return isEvmAddress(evmAddress)?evmAddress:null;return typeof solanaAddress==='string'&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(solanaAddress)?solanaAddress:null;}

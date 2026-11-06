@@ -1,0 +1,805 @@
+import {
+ connect, disconnect, connectedAddress, verifyConfig, createToken, inspectPool, tradeToken,
+ getMomentumPlatform, createMomentumPlatform, proveWalletControl, connection
+} from './chain.js';
+import {validateLaunch, isPublicKey, toAtomic, QUOTES} from './validation.js';
+import {PublicKey} from '@solana/web3.js';
+import {loadMainnetPools, loadNews, loadRisk, observeDevnetLaunches,formatMoney} from './live.js';
+
+const el=id=>document.getElementById(id);
+const $all=selector=>Array.from(document.querySelectorAll(selector));
+const app={busy:false,mode:'mainnet',mainnet:[],devnet:[],risks:new Map(),metadata:new Map(),selected:null,
+  loaded:false,seen:new Set(),scanCache:new Map(),news:[],timer:null,sub:null,
+  audio:false,profile:null,uploadReady:false,turnstileId:null,sitekey:'',tourIndex:-1,avatarURL:null};
+const sym=s=>String(s??'').slice(0,6)+'…'+String(s??'').slice(-4);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const validUrl=(value,hosts=null)=>{
+ try{
+   const u=new URL(String(value||'').trim());
+   if(u.protocol!=='https:'||u.username||u.password||!u.hostname.includes('.'))return null;
+   if(hosts&&!hosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h)))return null;
+   return u.toString();
+ }catch{return null}
+};
+function toast(text){
+ const node=el('toast');node.textContent=text;node.classList.add('show');
+ if(node._hide)clearTimeout(node._hide);
+ node._hide=setTimeout(()=>node.classList.remove('show'),4400);
+}
+function message(text,type=''){
+ const status=el('status');
+ // Status panel is created lazily to keep the beginner launch form clean.
+ if(status){status.textContent=text;status.className='status '+type;}
+ toast(text.split('\n')[0].slice(0,150));
+}
+function hint(id,lines){el(id).textContent=Array.isArray(lines)?lines.join('\n'):lines}
+function busy(value){
+ app.busy=value;
+ for(const id of ['walletBtn','createBtn','verifyConfigBtn','inspectBtn','tradeBtn','createPlatformBtn']) {
+   const node=el(id);if(node)node.disabled=value || (id==='createPlatformBtn'&&!canOperator());
+ }
+}
+function fail(error){message('Operation stopped: '+(error?.message||String(error)),'error')}
+function soundWarning(){
+ if(!app.audio)return;
+ try{
+  const Context=window.AudioContext||window.webkitAudioContext;
+  if(!Context)return;
+  const ctx=new Context(),now=ctx.currentTime;
+  for(let i=0;i<2;i++){
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type='triangle';osc.frequency.setValueAtTime(i?410:540,now+i*.19);
+    osc.frequency.exponentialRampToValueAtTime(i?340:440,now+i*.19+.12);
+    gain.gain.setValueAtTime(.0001,now+i*.19);
+    gain.gain.exponentialRampToValueAtTime(.08,now+i*.19+.02);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+i*.19+.18);
+    osc.connect(gain).connect(ctx.destination);osc.start(now+i*.19);osc.stop(now+i*.19+.19);
+  }
+  setTimeout(()=>ctx.close().catch(()=>{}),1500);
+ }catch{}
+}
+function screenBadge(status){
+ const isWarn=status==='warning',review=status==='review';
+ const cls=isWarn?'warn':review?'review':'unknown';
+ const text=isWarn?'⚠ Elevated risk':review?'◇ Needs review':'◎ Unverified';
+ return '<span class="risk-badge '+cls+'">'+text+'</span>';
+}
+function avatarSymbol(value){
+ const str=String(value||'?');
+ return str.replace(/[^a-z0-9]/gi,'').slice(0,1).toUpperCase()||'✦';
+}
+function currentItems(){return app.mode==='devnet'?app.devnet:app.mainnet}
+function renderRadar(){
+ const node=el('feedList');node.replaceChildren();
+ const items=currentItems().slice(0,48);
+ if(!items.length){
+  if(!app.selected){const chart=el('marketChartPanel');if(chart)chart.hidden=true;}
+  const empty=document.createElement('div');empty.className='feed-empty';
+  empty.textContent=app.mode==='devnet'
+   ?'Watching devnet LaunchLab account changes. No new pool changes have been observed during this session. For existing devnet pools, paste a mint in Safety Lab.'
+   :'No verified response from the new-pools source yet. There are no fictional example tokens here.';
+  node.appendChild(empty);return;
+ }
+ for(const item of items){
+  const row=document.createElement('button');
+  row.type='button';row.className='token-row'+(app.selected?.mint===item.mint?' active':'');
+  const av=document.createElement('span');av.className='token-avatar';
+  const fallback=document.createElement('span');fallback.className='token-avatar-fallback';fallback.textContent='◇';
+  av.append(fallback);
+  if(item.imageUrl){
+    const image=document.createElement('img');image.className='token-avatar-image';image.alt='';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.src=item.imageUrl;
+    image.addEventListener('load',()=>{fallback.hidden=true});
+    image.addEventListener('error',()=>{image.remove();fallback.hidden=false});
+    av.append(image);
+  }
+  const info=document.createElement('span');info.className='token-row-info';
+  const name=document.createElement('strong');name.textContent=(item.name||'Unknown token').slice(0,70);
+  const meta=document.createElement('small');
+  const age=item.createdAt?Math.max(0,Math.round((Date.now()-Date.parse(item.createdAt))/60000)):null;
+  meta.textContent=(item.symbol||'?')+' · '+sym(item.mint)+(age!==null?' · '+age+'m':'');
+  info.append(name,meta);
+  const stat=document.createElement('span');stat.className='token-values';
+  const top=document.createElement('strong');
+  top.textContent=item.network==='devnet'?(item.progress!==null?item.progress.toFixed(1)+'% curve':'Curve unknown'):formatMoney(item.liquidityUsd);
+  const bottom=document.createElement('small');
+  const risk=app.risks.get(item.network+'|'+item.mint);
+  bottom.textContent=risk?.status==='warning'?'⚠ ELEVATED RISK':risk?.status==='review'?'◇ NEEDS REVIEW':'◎ UNVERIFIED';
+  stat.append(top,bottom);
+  row.append(av,info,stat);
+  row.addEventListener('click',()=>selectToken(item));
+  node.append(row);
+ }
+}
+let searchSequence=0,searchActive=false;
+async function searchHistoricalPools(){
+ if(document.body.dataset.experience!=='mainnet'){toast('Historical Solana pool search is available in Mainnet discovery.');return}
+ const q=el('marketSearch').value.trim();if(q.length<2){toast('Enter at least two characters.');return}
+ const seq=++searchSequence;el('marketSearchStatus').textContent='Searching indexed pools…';
+ try{
+  const response=await fetch('/api/search-pools?q='+encodeURIComponent(q));
+  if(!response.ok)throw Error('Search temporarily unavailable');
+  const data=await response.json();if(seq!==searchSequence)return;
+  app.mainnet=data.pools||[];searchActive=true;app.selected=null;
+  el('marketChartPanel').hidden=true;el('marketSearchClear').hidden=false;
+  el('marketSearchStatus').textContent=app.mainnet.length+' indexed pool results. Historical coverage depends on the market data provider.';
+  renderRadar();
+ }catch(error){if(seq===searchSequence)el('marketSearchStatus').textContent='Search unavailable. Try again shortly.'}
+}
+el('marketSearchBtn')?.addEventListener('click',searchHistoricalPools);
+el('marketSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchHistoricalPools()}});
+el('marketSearchClear')?.addEventListener('click',()=>{++searchSequence;searchActive=false;el('marketSearch').value='';el('marketSearchClear').hidden=true;el('marketSearchStatus').textContent='Showing newly indexed pools.';refreshPools()});
+function scoreResponse(risk){
+ return risk?.status==='warning'?'warning':risk?.status==='review'?'review':'unverified';
+}
+let chartRequest=0,priceSequence=0,chartKey='';
+async function refreshLivePrice(){
+ const item=app.selected,strip=el('livePriceStrip');
+ if(!strip)return;
+ if(!item||item.network!=='mainnet'||document.body.dataset.experience!=='mainnet'){strip.hidden=true;return}
+ const seq=++priceSequence;strip.hidden=false;
+ try{
+  const response=await fetch('/api/pool-live?pool='+encodeURIComponent(item.pool));
+  if(!response.ok)throw Error('Unavailable');
+  const data=await response.json();
+  if(seq!==priceSequence||app.selected?.pool!==item.pool)return;
+  el('livePoolPrice').textContent=data.priceUsd===null?'Price unavailable':'$'+Number(data.priceUsd).toLocaleString('en-US',{maximumSignificantDigits:8});
+  el('livePoolChange').textContent=data.change5m===null?'5m change unavailable':'5m '+(data.change5m>0?'+':'')+data.change5m.toFixed(2)+'%';
+  el('livePoolUpdated').textContent='Snapshot '+new Date(data.checkedAt).toLocaleTimeString();
+ }catch{if(seq===priceSequence)el('livePoolUpdated').textContent='Price feed temporarily unavailable'}
+}
+setInterval(()=>{if(!document.hidden)refreshLivePrice()},12000);
+function chartMessage(frame,message){frame.replaceChildren();const p=document.createElement('p');p.className='native-chart-empty';p.textContent=message;frame.append(p)}
+function paintCandles(frame,rows){
+ const candles=rows.filter(x=>Array.isArray(x)&&x.length>=5&&x.slice(0,5).every(v=>Number.isFinite(Number(v)))).slice(-90);
+ if(!candles.length){chartMessage(frame,'No verified price candles are available for this pool yet.');return}
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ svg.setAttribute('viewBox','0 0 900 430');svg.setAttribute('role','img');svg.setAttribute('aria-label','Historical OHLC candlestick chart');svg.classList.add('native-chart');
+ const ns='http://www.w3.org/2000/svg',left=22,right=825,top=24,bottom=376;
+ const low=Math.min(...candles.map(x=>Number(x[3]))),high=Math.max(...candles.map(x=>Number(x[2])));
+ const span=Math.max(high-low,Math.abs(high)*0.00001,1e-12),y=v=>bottom-(Number(v)-low)/span*(bottom-top);
+ const add=(tag,attrs,cls)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(cls)n.setAttribute('class',cls);svg.append(n);return n};
+ for(let i=0;i<=4;i++){const val=low+span*i/4,yy=y(val);add('line',{x1:left,y1:yy,x2:right,y2:yy},'native-chart-grid');const t=add('text',{x:835,y:yy+4},'native-chart-axis');t.textContent=val>=1?val.toFixed(3):val.toPrecision(3)}
+ const step=(right-left)/candles.length,width=Math.max(2,Math.min(11,step*.62));
+ candles.forEach((c,i)=>{const [time,open,hi,lo,close]=c.map(Number),x=left+(i+.5)*step,up=close>=open,cls=up?'native-chart-up':'native-chart-down';add('line',{x1:x,x2:x,y1:y(hi),y2:y(lo)},'native-chart-wick '+cls);add('rect',{x:x-width/2,y:Math.min(y(open),y(close)),width,height:Math.max(1.4,Math.abs(y(open)-y(close)))},cls)});
+ const t=add('text',{x:22,y:412},'native-chart-axis');t.textContent=new Date(Number(candles[0][0])*1000).toLocaleString()+' — '+new Date(Number(candles[candles.length-1][0])*1000).toLocaleString();
+ frame.replaceChildren(svg);
+}
+async function renderMarketChart(item){
+ const panel=el('marketChartPanel'),frame=el('marketChartFrame');if(!panel||!frame)return;
+ const seq=++chartRequest;
+ if(item.network!=='mainnet'||!isPublicKey(item.pool)){panel.hidden=true;frame.replaceChildren();return}
+ panel.hidden=false;refreshLivePrice();el('marketChartTitle').textContent=String(item.name||item.symbol||'Token')+' · Solana mainnet';
+ const interval=document.querySelector('[data-chart-interval].active')?.dataset.chartInterval||'15';
+ const key=item.pool+'|'+interval;
+ if(chartKey===key&&frame.querySelector('svg'))return;
+ chartKey=key;chartMessage(frame,'Loading verified market candles…');
+ try{
+  const response=await fetch('/api/ohlcv?pool='+encodeURIComponent(item.pool)+'&interval='+encodeURIComponent(interval));
+  if(!response.ok)throw Error('Market candles are currently unavailable.');
+  const payload=await response.json();if(seq!==chartRequest)return;
+  paintCandles(frame,payload.candles||[]);
+  el('marketChartNote').textContent='OHLC candles: GeckoTerminal public API · historical, may be delayed · not investment advice.';
+ }catch(error){if(seq===chartRequest)chartMessage(frame,'Chart unavailable for this pool. Please try another pool or timeframe.');}
+}
+document.querySelectorAll('[data-chart-interval]').forEach(button=>button.addEventListener('click',()=>{
+ document.querySelectorAll('[data-chart-interval]').forEach(b=>b.classList.toggle('active',b===button));
+ if(app.selected?.network==='mainnet')renderMarketChart(app.selected);
+}));
+function renderDetail(item){
+ renderMarketChart(item);
+ const node=el('tokenDetail');
+ const risk=app.risks.get(item.network+'|'+item.mint);
+ const rows=[];
+ if(item.network==='mainnet'){
+   rows.push(['Liquidity',formatMoney(item.liquidityUsd)],['Market cap',formatMoney(item.marketCapUsd)],['FDV (not market cap)',formatMoney(item.fdvUsd)],['24h volume',formatMoney(item.volume24hUsd)],['Pool launched',item.createdAt?new Date(item.createdAt).toLocaleString():'Unknown']);
+ }else{
+   rows.push(['Bonding curve',item.progress!==null?item.progress.toFixed(2)+'% (funding approximation)':'Not available'],
+    ['Curve quote raised',item.fundingAtomic||'Unknown atomic units'],['Target quote',item.targetAtomic||'Unknown atomic units'],
+    ['Pool status code',item.status||'Unknown'],['Last observed slot',item.slot||'Unknown']);
+ }
+ if(risk)rows.push(['Mint authority',risk.mintAuthority?'ACTIVE':'Revoked or unknown'],['Freeze authority',risk.freezeAuthority?'ACTIVE':'Revoked or unknown']);
+ const infoLines=risk?.signals?.length?risk.signals.map(s=>'<li>'+esc(s.message)+'</li>').join(''):'<li>Risk scan not completed. Do not assume this token is safe.</li>';
+ const mintHref='https://solscan.io/token/'+encodeURIComponent(item.mint)+(item.network==='devnet'?'?cluster=devnet':'');
+ const socials=app.metadata.get(item.mint);
+ const socialLinks=socials ? [
+  ...(socials.websites||[]).map((url,i)=>({url,label:i?'Website '+(i+1):'Website'})),
+  ...(socials.x?[{url:socials.x,label:'X / Twitter'}]:[]),
+  ...(socials.telegram?[{url:socials.telegram,label:'Telegram'}]:[])
+ ].filter(x=>validUrl(x.url)):[];
+ const socialHtml=item.network==='mainnet'
+  ?'<h4 style="margin:20px 0 7px">Project links · unverified claims</h4>'+
+    (socialLinks.length
+      ?'<div class="social-chips">'+socialLinks.map(x=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">'+esc(x.label)+' ↗</a>').join('')+'</div>'
+      :'<p>No project social links retrieved. Never take missing details as a green light.</p>')+
+    (socials?.description?'<p>'+esc(socials.description)+'</p>':'')+
+    (socials?.providerVerified?'<p><small>GeckoTerminal records this token’s info as provider-verified; this does not establish token safety or owner identity.</small></p>':'')
+  :'';
+ const disclaimer=item.network==='devnet'
+  ?'Funding progress is an approximation from Raydium pool reserve values, not an exact quoted trade. Market cap is not computed for devnet.'
+  :'This is a newly indexed liquidity pool, not necessarily a newly minted token. Missing or null market-cap data are not substituted with FDV.';
+ node.innerHTML='<div class="card-eyebrow">LIVE TOKEN REPORT · '+esc(item.network.toUpperCase())+'</div>'+
+  '<div class="token-header"><div class="token-avatar">'+esc(avatarSymbol(item.symbol))+'</div><div><h3>'+esc(item.name||'Unknown token')+'</h3><span class="detail-meta">'+esc(item.symbol||'?')+' · '+esc(sym(item.mint))+'</span></div></div>'+
+  screenBadge(scoreResponse(risk))+
+  '<div class="detail-stats">'+rows.map(([k,v])=>'<div><small>'+esc(k)+'</small><b>'+esc(v)+'</b></div>').join('')+'</div>'+
+  '<div class="detail-meta">Mint: '+esc(item.mint)+'<br>Pool: '+esc(item.pool||'Not available')+'</div>'+
+  '<h4 style="margin:18px 0 8px">Security signals</h4><ul class="detail-list">'+infoLines+'</ul>'+socialHtml+
+  '<div class="detail-foot">'+esc(disclaimer)+'<br><a target="_blank" rel="noopener noreferrer" class="mini-link" href="'+mintHref+'">Inspect on Solscan ↗</a></div>';
+}
+async function selectToken(item){
+ app.selected=item;renderRadar();renderDetail(item);
+ const key=item.network+'|'+item.mint;
+ if(!app.risks.has(key)){
+  app.risks.set(key,{status:'unverified',signals:[{severity:'unknown',message:'Checking on-chain signals…'}]});
+  renderDetail(item);
+  await scanMint(item.mint,item.network);
+ }
+ if(item.network==='mainnet'&&!app.metadata.has(item.mint))fetchTokenSocials(item.mint);
+}
+async function fetchTokenSocials(mint){
+ try{
+  const response=await fetch('/api/info?mint='+encodeURIComponent(mint));
+  if(!response.ok)throw Error('Unverified');
+  const data=await response.json();
+  app.metadata.set(mint,data.metadata||{});
+ }catch{app.metadata.set(mint,{});}
+ if(app.selected?.mint===mint)renderDetail(app.selected);
+}
+async function scanMint(mint,network,notifyNew=false){
+ const key=network+'|'+mint;
+ try{
+  const result=await loadRisk(mint,network==='devnet'?'devnet':'mainnet');
+  const prev=app.risks.get(key);
+  app.risks.set(key,result);
+  renderRadar();
+  if(app.selected?.mint===mint&&app.selected?.network===network)renderDetail(app.selected);
+  if(notifyNew && result.status==='warning'&&prev?.status!=='warning')soundWarning();
+  return result;
+ }catch{
+  const result={status:'unverified',signals:[{severity:'unknown',message:'On-chain risk API unavailable. No safety conclusions can be drawn.'}]};
+  app.risks.set(key,result);renderRadar();
+  if(app.selected?.mint===mint&&app.selected?.network===network)renderDetail(app.selected);
+  return result;
+ }
+}
+let refreshing=false;
+async function refreshPools(){
+ if(refreshing)return;refreshing=true;
+ el('liveStatus').textContent='Loading latest Solana mainnet pools…';
+ try{
+  const data=await loadMainnetPools();
+  const list=data.pools.map(x=>({...x,network:'mainnet'}));
+  const newKeys=list.filter(x=>!app.seen.has(x.mint)).map(x=>x.mint);
+  const first=!app.loaded;
+  if(!searchActive)app.mainnet=list;app.loaded=true;
+  for(const item of list)app.seen.add(item.mint);
+  el('liveStatus').textContent='Mainnet pools · indexed source with ~60s cache · not all minted tokens';
+  el('feedTime').textContent='Checked '+new Date(data.checkedAt).toLocaleTimeString();
+  if(app.mode==='mainnet'&&!searchActive)renderRadar();
+  const candidates=first?list.slice(0,5):list.filter(x=>newKeys.includes(x.mint)).slice(0,5);
+  await Promise.all(candidates.map(x=>scanMint(x.mint,'mainnet',!first)));
+ }catch(error){
+  el('liveStatus').textContent='New-pool feed currently unavailable: '+(error?.message||'Provider error');
+  if(app.mode==='mainnet')renderRadar();
+ }finally{refreshing=false}
+}
+function initDevnet(){
+ app.sub=observeDevnetLaunches(async item=>{
+  app.devnet=[item,...app.devnet.filter(x=>x.pool!==item.pool)].slice(0,48);
+  if(app.mode==='devnet')renderRadar();
+  await scanMint(item.mint,'devnet',true);
+ },text=>{
+  if(app.mode==='devnet')el('liveStatus').textContent=text;
+ });
+}
+el('mainnetTab').addEventListener('click',()=>{
+ app.mode='mainnet';if(app.selected?.network!=='mainnet'){app.selected=null;el('marketChartPanel').hidden=true;}el('mainnetTab').classList.add('active');el('devnetTab').classList.remove('active');
+ el('liveStatus').textContent='Mainnet newly indexed pools · roughly 60s source cache';renderRadar();
+});
+el('devnetTab').addEventListener('click',()=>{
+ app.mode='devnet';if(app.selected?.network!=='devnet'){app.selected=null;el('marketChartPanel').hidden=true;}el('devnetTab').classList.add('active');el('mainnetTab').classList.remove('active');
+ el('liveStatus').textContent='Streaming Raydium LaunchLab devnet pool changes when RPC permits';el('marketChartPanel').hidden=true;el('marketChartFrame').replaceChildren();renderRadar();
+});
+el('refreshPools').addEventListener('click',refreshPools);
+async function refreshNews(){
+ const node=el('newsGrid');
+ try{
+  const articles=await loadNews();
+  node.replaceChildren();
+  if(!articles.length){
+   const e=document.createElement('div');e.className='feed-empty';e.textContent='No matching recent headlines were available from the news index.';node.append(e);return;
+  }
+  for(const a of articles.slice(0,12)){
+   const href=validUrl(a.url);if(!href)continue;
+   const card=document.createElement('a');card.className='news-card';card.href=href;card.target='_blank';card.rel='noopener noreferrer';
+   const tag=document.createElement('span');tag.className='news-tag';tag.textContent=String(a.category||'Industry').toUpperCase()+' · GLOBAL';
+   const heading=document.createElement('h3');heading.textContent=a.title;
+   const foot=document.createElement('small');foot.textContent=a.domain+' · '+new Date(a.publishedAt).toLocaleString();
+   card.append(tag,heading,foot);node.append(card);
+  }
+ }catch(error){
+  node.innerHTML='<div class="feed-empty">News source unavailable. Momentum never substitutes made-up headlines for real reporting.</div>';
+ }
+}
+el('refreshNews').addEventListener('click',refreshNews);
+
+let imageFile=null;
+el('tokenImage').addEventListener('change',()=>{
+ const file=el('tokenImage').files?.[0];if(!file)return;
+ if(file.size>1024*1024||!['image/png','image/jpeg','image/webp'].includes(file.type)){
+  el('tokenImage').value='';toast('Upload PNG, JPEG or WebP under 1 MB.');return;
+ }
+ imageFile=file;
+ if(app.avatarURL)URL.revokeObjectURL(app.avatarURL);
+ app.avatarURL=URL.createObjectURL(file);
+ el('imagePreview').style.backgroundImage='url("'+app.avatarURL+'")';
+ el('imagePreview').textContent='';
+ el('previewCoinIcon').style.backgroundImage='url("'+app.avatarURL+'")';
+ el('previewCoinIcon').textContent='';
+});
+for(const id of ['tokenName','tokenTicker','tokenDescription']){
+ el(id).addEventListener('input',()=>{
+  el('previewName').textContent=el('tokenName').value||'Your token name';
+  el('previewTicker').textContent='$'+(el('tokenTicker').value||'TICKER').toUpperCase();
+  el('previewDescription').textContent=el('tokenDescription').value||'Your story starts here.';
+ });
+}
+function readSocial(){
+ const fields=[
+  ['Website','tokenWebsite',null],
+  ['X','tokenX',['x.com','twitter.com']],
+  ['Telegram','tokenTelegram',['t.me','telegram.me']]
+ ];
+ const result={};
+ for(const [name,id,hosts] of fields){
+  const value=el(id).value.trim();
+  if(!value)continue;
+  const u=validUrl(value,hosts);
+  if(!u)throw Error(name+' needs a valid public HTTPS link.'+(hosts?' Accepted: '+hosts.join(', '):''));
+  result[id]=u;
+ }
+ return result;
+}
+const chainBoxes=()=>Array.from(document.querySelectorAll('input[name="chain"]'));
+function selectedChains(){return chainBoxes().filter(x=>x.checked).map(x=>x.value)}
+function updateChains(){
+ const names={solana:'Solana devnet',ethereum:'Ethereum',bnb:'BNB Chain',base:'Base',arbitrum:'Arbitrum',polygon:'Polygon'};
+ const chosen=selectedChains();
+ el('chainSummary').textContent=chosen.length===0?'Choose at least one network.':
+ chosen.some(x=>x!=='solana')?chosen.map(x=>names[x]).join(' + ')+' · Preview only: multi-chain contracts and fee aggregation are not deployed.':
+ 'Solana devnet selected · network costs are confirmed in your wallet, not estimated here.';
+}
+chainBoxes().forEach(x=>x.addEventListener('change',updateChains));
+updateChains();
+function readCreate(){
+ const raw={name:el('tokenName').value,symbol:el('tokenTicker').value,quote:el('launchQuote').value,
+  metadataUrl:el('metadataUrl').value.trim(),configId:el('configId').value.trim()};
+ const validation=validateLaunch({...raw,metadataUrl:raw.metadataUrl||'https://example.com/temporary.json'});
+ const errors=validation.errors.filter(x=>!x.includes('metadata'));
+ if(errors.length)throw Error(errors.join(' '));
+ const chains=selectedChains();
+ if(chains.length!==1||chains[0]!=='solana')throw Error('Only Solana devnet deployment is enabled. Multi-chain launch requires audited contracts and fee aggregation.');
+ const socials=readSocial();
+ return {...raw,name:validation.name,symbol:validation.symbol,description:el('tokenDescription').value.trim(),socials};
+}
+function checkedFeeNote(text){el('feeStatus').textContent=text}
+function canOperator(){
+ const expected=import.meta.env.VITE_MOMENTUM_OPERATOR_WALLET||'';
+ return !!expected && connectedAddress()===expected;
+}
+async function inspectFee(){
+ try{
+  const state=await getMomentumPlatform();
+  if(state.ok){
+   checkedFeeNote('Verified on Solana devnet\nPlatform: '+state.platformId+'\nClaim wallet: '+state.claimWallet+'\nTrading fee: 2.00% (Raydium LaunchLab curve only)\nFee claim proof: verified account read');
+  }else checkedFeeNote(state.message||'No verified operator config. Momentum does not collect a 2% fee here.');
+ }catch{checkedFeeNote('Platform verification unavailable; no Momentum fee is asserted.')}
+ busy(app.busy);
+}
+// Testnet-only faucet request. RPC rate limits and funding are outside Momentum's control.
+let requestingTestSol=false;
+el('requestTestSol')?.addEventListener('click',async()=>{
+ if(requestingTestSol)return;
+ if(document.body.dataset.experience!=='devnet'){toast('Switch to Devnet to request test SOL.');return}
+ const address=connectedAddress();
+ if(!address){toast('Connect your Solana wallet first.');return}
+ const button=el('requestTestSol');requestingTestSol=true;button.disabled=true;button.textContent='Requesting test SOL…';
+ try{
+  const signature=await connection.requestAirdrop(new PublicKey(address),100000000);
+  button.textContent='Confirming on Devnet…';
+  const latest=await connection.getLatestBlockhash('confirmed');
+  const result=await connection.confirmTransaction({signature,...latest},'confirmed');
+  if(result.value.err)throw Error('The airdrop transaction did not succeed.');
+  await refreshDevnetBalance(address);
+  toast('0.1 test SOL received on Devnet. Test SOL has no monetary value.');
+ }catch(error){toast('Faucet request unavailable: '+(error?.message||'RPC may be rate limited').slice(0,130))}
+ finally{requestingTestSol=false;button.disabled=false;button.textContent='Request 0.1 Test SOL'}
+});
+el('walletBtn').addEventListener('click',async()=>{
+ if(document.body.dataset.experience!=='devnet'){toast('Wallet connection is only available in the Devnet testing workspace.');return}
+ if(app.busy)return;busy(true);
+ try{
+  if(connectedAddress()){
+   await disconnect();el('walletBtn').innerHTML='Connect wallet <svg class="momentum-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+   el('profileAddress').textContent='Wallet disconnected';
+   el('receiveAddress').textContent='Connect a wallet to display a public address.';
+   el('walletBalance').textContent='No wallet connected.';
+   toast('Wallet disconnected.');
+  }else{
+   const address=await connect();
+   el('walletBtn').textContent=sym(address)+' · Disconnect';
+   el('profileAddress').textContent=address;
+   loadProfile(address);
+   refreshDevnetBalance(address);
+   toast('Wallet connected. No funds transferred.');
+  }
+  await inspectFee();
+ }catch(error){fail(error)}finally{busy(false)}
+});
+function checkPreviewConfig(config){
+ hint('configPreview',[
+  'Verified official Raydium devnet program: '+config.programId,
+  'Configuration: '+config.configId,'Quote mint: '+config.quoteMint,
+  'Quote decimals: '+config.decimals,config.platformNote
+ ]);
+}
+async function checkedConfig(quote,configId){
+ const config=await verifyConfig(quote,configId);
+ checkPreviewConfig(config);return config;
+}
+el('verifyConfigBtn').addEventListener('click',async()=>{
+ if(app.busy)return;busy(true);
+ try{await checkedConfig(el('launchQuote').value,el('configId').value.trim());toast('Raydium configuration decoded successfully.');}
+ catch(error){fail(error)}finally{busy(false)}
+});
+el('launchQuote').addEventListener('change',()=>{
+ hint('configPreview','Quote changed. Verify the new Raydium configuration before creating a token.');
+});
+async function prepareMetadata(values){
+ if(values.metadataUrl){
+  if(!validUrl(values.metadataUrl))throw Error('Advanced metadata must be a public HTTPS JSON URL.');
+  return values.metadataUrl;
+ }
+ if(!imageFile)throw Error('Choose a token image or paste your previously published metadata JSON URL under Advanced.');
+ if(!app.uploadReady)throw Error('Automatic metadata publishing is not configured yet. Expand Advanced and enter a published metadata JSON URL. Nothing was charged.');
+ const token=window.turnstile?.getResponse?.(app.turnstileId);
+ if(!token)throw Error('Complete the anti-bot check before publishing token metadata.');
+ const base64=await new Promise((resolve,reject)=>{
+  const reader=new FileReader();reader.onerror=()=>reject(Error('Cannot read token image'));reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.readAsDataURL(imageFile);
+ });
+ const response=await fetch('/api/metadata',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+  name:values.name,symbol:values.symbol,description:values.description,socials:values.socials,
+  imageBase64:base64,imageType:imageFile.type,turnstileToken:token
+ })});
+ const payload=await response.json().catch(()=>({}));
+ window.turnstile?.reset?.(app.turnstileId);
+ if(!response.ok||!payload.metadataUrl)throw Error(payload.error||'Metadata publisher unavailable.');
+ return payload.metadataUrl;
+}
+async function configureMetadataPublisher(){
+ try{
+  const r=await fetch('/api/config');if(!r.ok)return;
+  const c=await r.json();
+  if(!c.metadataUploadReady||!c.turnstileSiteKey)return;
+  app.uploadReady=true;app.sitekey=c.turnstileSiteKey;
+  const host=document.createElement('div');host.id='launchCaptcha';
+  el('createBtn').parentElement.before(host);
+  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  script.async=true;script.defer=true;
+  script.onload=()=>{if(window.turnstile)app.turnstileId=window.turnstile.render(host,{sitekey:app.sitekey,theme:'dark'})};
+  document.head.appendChild(script);
+  toast('Protected image publishing is available.');
+ }catch{}
+}
+// Original Momentum sonic identity: three rising soft harmonic tones followed by a glass-like resolving chord.
+// All tones are synthesized locally. No borrowed Exodus/Discord audio, no autoplay, no remote sound assets.
+let soundContext=null;
+function sonicSignature(kind='success'){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+  soundContext ||=new Ctx();soundContext.resume().catch(()=>{});
+  const ctx=soundContext,now=ctx.currentTime+.035;
+  const notes=kind==='success'?[392,493.88,587.33,783.99]:[329.63,440,493.88];
+  notes.forEach((frequency,index)=>{
+   const start=now+index*.105;
+   [1,2.01,3.02].forEach((harmonic,j)=>{
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();
+    osc.type='sine';osc.frequency.setValueAtTime(frequency*harmonic,start);
+    filter.type='lowpass';filter.frequency.value=kind==='success'?4500:2700;
+    const volume=(kind==='success'?.12:.075)/((j+1)*1.4);
+    gain.gain.setValueAtTime(.0001,start);
+    gain.gain.exponentialRampToValueAtTime(volume,start+.025);
+    gain.gain.exponentialRampToValueAtTime(.0001,start+(index===notes.length-1?.78:.43));
+    osc.connect(filter).connect(gain).connect(ctx.destination);
+    osc.start(start);osc.stop(start+(index===notes.length-1?.8:.46));
+   });
+  });
+ }catch{}
+}
+el('previewSound').addEventListener('click',()=>sonicSignature('success'));
+const slide=el('launchSlide'),fill=el('sliderFill'),slideLabel=el('sliderLabel');
+function resetSlider(){slide.value=0;fill.style.width='0%';slideLabel.textContent='Slide to review & launch →'}
+slide.addEventListener('input',()=>{
+ const value=Number(slide.value);fill.style.width=value+'%';
+ slideLabel.textContent=value>=95?'Release to review your launch':'Slide to review & launch →';
+});
+slide.addEventListener('change',()=>{
+ if(Number(slide.value)<95){resetSlider();return}
+ resetSlider();
+ if(app.busy)return;
+ const submit=el('createBtn');
+ if(typeof el('createForm').requestSubmit==='function')el('createForm').requestSubmit(submit);
+});
+el('createForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(app.busy)return;busy(true);
+ try{
+  const values=readCreate();
+  if(!connectedAddress())throw Error('Connect a Solana devnet wallet before launching.');
+  message('Preparing your token and checking on-chain configuration…');
+  await checkedConfig(values.quote,values.configId);
+  values.metadataUrl=await prepareMetadata(values);
+  const platform=await getMomentumPlatform();
+  if(!platform.ok)toast('2% Momentum platform fee has NOT been enabled; launch uses default Raydium config.');
+  const created=await createToken(values);
+  const url='https://explorer.solana.com/address/'+encodeURIComponent(created.mint)+'?cluster=devnet';
+  const anchor=document.createElement('a');anchor.href=url;anchor.target='_blank';anchor.rel='noopener noreferrer';
+  anchor.textContent='View your token on Solana devnet ↗';
+  const preview=el('configPreview');preview.textContent='Devnet launch submitted: '+created.mint+'\nPool: '+(created.pool||'Verify directly on-chain');
+  preview.append(document.createElement('br'),anchor);
+  el('tradeMint').value=created.mint;
+  el('tradeQuote').value=values.quote;
+  sonicSignature('success');
+  message('Devnet launch request completed. Verify the transaction and mint on-chain.','ok');
+ }catch(error){fail(error)}
+ finally{busy(false)}
+});
+
+async function checkedPool(){
+ const mint=el('tradeMint').value.trim();
+ if(!isPublicKey(mint))throw Error('Enter a valid Solana mint.');
+ if(!connectedAddress())throw Error('Connect your wallet first.');
+ const pool=await inspectPool(mint,el('tradeQuote').value);
+ hint('poolPreview',['Raydium devnet pool: '+pool.pool.toBase58(),'Token precision: '+pool.decimals,
+   'Pool status: '+pool.status,'Platform: '+pool.platform,
+   'Momentum platform fee verified: '+(pool.momentumFeeVerified?'YES: 2%':'NO / unverified'),
+   'Never assume a safe liquidity lock without independent migration verification.']);
+ return pool;
+}
+el('inspectBtn').addEventListener('click',async()=>{
+ if(app.busy)return;busy(true);
+ try{await checkedPool();toast('On-chain pool data inspected.');}catch(error){fail(error)}
+ finally{busy(false)}
+});
+function updateAmountHint(){
+ el('amountHint').textContent=el('tradeSide').value==='buy'
+  ?'Spend '+el('tradeQuote').value+' on devnet. Verify minimum received and fees in your wallet.'
+  :'Specify token amount. Mint precision will be read on-chain.';
+}
+el('tradeSide').addEventListener('change',updateAmountHint);
+el('tradeQuote').addEventListener('change',updateAmountHint);
+el('tradeForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(app.busy)return;busy(true);
+ try{
+  const quote=el('tradeQuote').value,side=el('tradeSide').value,amount=el('tradeAmount').value.trim();
+  const mintAddress=el('tradeMint').value.trim();
+  const pool=await checkedPool();
+  const units=toAtomic(amount,side==='buy'?QUOTES[quote].decimals:pool.decimals);
+  if(!confirm('Approve a '+side+' with '+amount+' '+(side==='buy'?quote:'tokens')+' ('+units+' atomic units) on Solana DEVNET? Review the actual wallet transaction details before signing.'))return;
+  const response=await tradeToken({mintAddress,quote,side,amount});
+  toast('Devnet '+side+' request sent. Pool: '+sym(response.pool));
+ }catch(error){fail(error)}
+ finally{busy(false)}
+});
+el('scanForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const mint=el('scanMint').value.trim(),network=el('scanNetwork').value;
+ if(!isPublicKey(mint)){toast('Enter a valid Solana mint address.');return}
+ hint('scanResults','Checking authorities and concentration on '+network+'…');
+ const result=await scanMint(mint,network);
+ hint('scanResults',
+  [result.status==='warning'?'⚠ ELEVATED RISK':result.status==='review'?'◇ NEEDS REVIEW':'◎ UNVERIFIED',
+   'Mint: '+mint,...(result.signals||[]).map(x=>'• '+x.message),
+   'Data may be delayed. Never use this scan as a guarantee of safety.']);
+});
+el('soundToggle').addEventListener('change',event=>{
+ app.audio=!!event.target.checked;
+ try{localStorage.setItem('momentum-warnings-enabled',String(app.audio))}catch{}
+ if(app.audio){soundWarning();toast('Risk alert sounds enabled (sound tested).')}else toast('Warning sounds muted; visual labels remain.');
+});
+async function refreshDevnetBalance(address){
+ el('receiveAddress').textContent=address;
+ el('walletBalance').textContent='Checking public Solana devnet balance…';
+ try{
+  const lamports=await connection.getBalance(new PublicKey(address),'confirmed');
+  if(connectedAddress()===address)
+   el('walletBalance').textContent='Devnet SOL: '+(lamports/1000000000).toFixed(5)+' (test-network balance)';
+ }catch{
+  if(connectedAddress()===address)el('walletBalance').textContent='Balance unavailable; address still belongs to the connected wallet.';
+ }
+}
+el('copyWalletAddress').addEventListener('click',async()=>{
+ const address=connectedAddress();if(!address){toast('Connect your wallet first.');return}
+ try{await navigator.clipboard.writeText(address);toast('Public address copied. Always confirm the sending network.')}
+ catch{toast('Copy failed; select your wallet address manually.')}
+});
+function readProfile(address){
+ try{
+  const raw=localStorage.getItem('momentum-profile-'+address);
+  const data=raw?JSON.parse(raw):null;
+  return data&&typeof data.name==='string'?data:null;
+ }catch{return null}
+}
+function loadProfile(address){
+ const profile=readProfile(address);
+ const name=profile?.name||'Explorer #'+address.slice(-4);
+ el('profileName').textContent=name;
+ el('profileDisplayName').value=profile?.name||'';
+ el('profileAvatar').textContent=address.slice(0,1).toUpperCase();
+ const n=address.charCodeAt(0)%360;
+ el('profileAvatar').style.background='linear-gradient(130deg,hsl('+n+' 90% 80%),hsl('+((n+70)%360)+' 76% 70%))';
+ el('profileAddress').textContent=address;
+}
+el('saveProfile').addEventListener('click',()=>{
+ const address=connectedAddress();
+ if(!address){toast('Connect wallet to save your local profile.');return}
+ const name=el('profileDisplayName').value.trim();
+ if(!/^[\p{L}\p{N} _.-]{2,24}$/u.test(name)){toast('Choose 2–24 letters, numbers, spaces, _ . or -');return}
+ try{
+  localStorage.setItem('momentum-profile-'+address,JSON.stringify({name,updatedAt:Date.now()}));
+  loadProfile(address);toast('Profile saved on this browser only. It is not a public on-chain identity.');
+ }catch{toast('Local browser storage not available.')}
+});
+el('signProfile').addEventListener('click',async()=>{
+ const address=connectedAddress();
+ if(!address){toast('Connect your wallet first.');return}
+ try{
+  const proof=await proveWalletControl();
+  if(proof.verified)toast('✓ Wallet control proven locally. Public account verification needs a secured backend.');
+ }catch(error){fail(error)}
+});
+el('createPlatformBtn').addEventListener('click',async()=>{
+ if(!canOperator()){toast('Only the configured Momentum operator wallet may create the fee config.');return}
+ const cpmmId=el('cpmmConfig').value.trim();
+ if(!isPublicKey(cpmmId)){toast('Enter a valid devnet CPMM config public key.');return}
+ if(!confirm('Create a Raydium LaunchLab devnet PlatformConfig with a 2% per-trade platform fee, paid to this connected operator wallet, and 100% LP burn scale? Review fees and addresses in your wallet.'))return;
+ busy(true);
+ try{
+  const result=await createMomentumPlatform(cpmmId);
+  toast('Devnet platform configuration submitted: '+sym(result.platformId));
+  await inspectFee();
+ }catch(error){fail(error)}
+ finally{busy(false)}
+});
+
+// NOVA onboarding assistant — speech only follows an explicit user button click.
+const steps=[
+ {anchor:'#top',text:"Welcome to Momentum! I'm Nova, your guide. Discover fresh pools, learn about their risks, then launch your own idea on Solana devnet."},
+ {anchor:'#discover',text:"Here are live feeds. Mainnet pools use a public market index; devnet LaunchLab activity uses a Solana account stream when available."},
+ {anchor:'#signals',text:"This is our safety lab. Warning labels mean risk signals were found. Unverified does not mean safe. Switch on sound if you'd like alerts."},
+ {anchor:'#launch',text:"Launching starts with your token's name, ticker, image and story. Add social links so people can investigate your project."},
+ {anchor:'#trade',text:"When you're ready, try a wallet-signed trade using test-network funds. Real-money trading isn't enabled yet."},
+ {anchor:'#profile',text:"Your wallet is your key. Make a personal profile, but never share a recovery phrase or approve an unfamiliar transaction."}
+];
+const spanishSteps=[
+ "¡Bienvenido a Momentum! Soy Nova, tu guía. Descubre nuevos tokens, conoce sus riesgos y prueba lanzamientos en Solana Devnet.",
+ "Aquí encontrarás actividad del mercado. Los datos de Mainnet y Devnet proceden de fuentes diferentes.",
+ "Este es nuestro centro de seguridad. Las advertencias señalan posibles riesgos; no garantizan que un token sea seguro.",
+ "Para lanzar un token, añade su nombre, símbolo, imagen y descripción. Incluye enlaces para que otros puedan investigar.",
+ "Puedes probar operaciones firmadas con tu billetera y fondos de prueba. Las operaciones con dinero real todavía no están disponibles.",
+ "Tu billetera es tu llave. Nunca compartas tu frase de recuperación ni apruebes transacciones desconocidas."
+];
+const novaLocale=(navigator.languages||[navigator.language||'en']).find(x=>/^es(?:-|$)/i.test(x))||navigator.language||'en';
+const novaSpanish=/^es(?:-|$)/i.test(novaLocale);
+function novaText(index){return novaSpanish?spanishSteps[index]:steps[index].text}
+function showTour(index){
+ $all('.tour-target').forEach(node=>node.classList.remove('tour-target'));
+ app.tourIndex=Math.min(index,steps.length-1);
+ const step=steps[app.tourIndex];el('mentorBubble').hidden=false;el('mentorText').textContent=novaText(app.tourIndex);
+ el('mentorNext').textContent=app.tourIndex===steps.length-1?'Finish ✓':'Next →';
+ const node=document.querySelector(step.anchor);
+ if(node&&app.tourIndex>0){node.classList.add('tour-target');node.scrollIntoView({behavior:'smooth',block:'start'});}
+}
+function speak(){
+ if(!('speechSynthesis'in window)){toast('Audio guidance is not supported by this browser.');return}
+ const text=el('mentorText').textContent;
+ speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ utterance.lang=novaSpanish?'es-ES':'en-US';
+ const voices=speechSynthesis.getVoices();
+ const matching=voices.filter(v=>v.lang.toLowerCase().startsWith(novaSpanish?'es':'en'));
+ const natural=matching.find(v=>/natural|premium|enhanced/i.test(v.name))||matching.find(v=>v.localService)||matching[0];
+ if(natural)utterance.voice=natural;
+ utterance.rate=1;utterance.pitch=1;utterance.volume=.8;
+ speechSynthesis.speak(utterance);
+}
+el('mentorOrb').addEventListener('click',()=>{if(el('mentorBubble').hidden)showTour(0);else el('mentorBubble').hidden=true});
+el('startTour').addEventListener('click',()=>showTour(0));
+el('mentorNext').addEventListener('click',()=>{
+ if(app.tourIndex>=steps.length-1){el('mentorBubble').hidden=true;$all('.tour-target').forEach(x=>x.classList.remove('tour-target'));return}
+ showTour(app.tourIndex+1);
+});
+if(novaSpanish)el('novaSpeakLabel').textContent='♪ Escuchar';
+el('mentorSpeak').addEventListener('click',speak);
+el('mentorClose').addEventListener('click',()=>{
+ el('mentorBubble').hidden=true;$all('.tour-target').forEach(x=>x.classList.remove('tour-target'));
+ if('speechSynthesis'in window)speechSynthesis.cancel();
+});
+window.addEventListener('pagehide',()=>{
+ if(app.sub)app.sub();
+ if(app.avatarURL)URL.revokeObjectURL(app.avatarURL);
+});
+try{app.audio=localStorage.getItem('momentum-warnings-enabled')==='true';el('soundToggle').checked=app.audio;}catch{}
+initDevnet();
+refreshPools();
+refreshNews();
+configureMetadataPublisher();
+inspectFee();
+setInterval(refreshPools,45000);
+setInterval(refreshNews,5*60000);
+
+// Route screens are mutually exclusive: home is not the token creation, feed or account page.
+const momentumRoutes=new Set(['top','discover','launch','signals','news','trade','profile','wallet','support','pnl','callouts']);
+function navigateMomentum(){
+ const requested=location.hash.slice(1).split('?')[0];
+ const route=momentumRoutes.has(requested)?requested:'top';
+ document.body.dataset.route=route;
+ document.querySelectorAll('.topbar nav a').forEach(link=>{
+  const active=link.getAttribute('href')==='#'+route;
+  link.classList.toggle('active-route',active);
+  if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+ });
+ document.querySelectorAll('.mobile-tabbar a').forEach(link=>{const active=link.dataset.tab===route;link.classList.toggle('active-route',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
+ document.title=(route==='top'?'Momentum':({discover:'Explore',launch:'Create token',signals:'Safety Lab',news:'News',trade:'Trade',profile:'Profile',wallet:'Wallet & account',pnl:'P&L Studio',callouts:'Callouts',support:'Support'}[route]+' — Momentum'));
+ window.scrollTo({top:0,behavior:'instant'});
+}
+window.addEventListener('hashchange',navigateMomentum);
+navigateMomentum();
+el('supportOpenGuide')?.addEventListener('click',()=>el('mentorOrb')?.click());
+
+// Mobile-first navigation. Browsing is public; wallet-required actions use an explicit access dialog.
+const moreButton=el('mobileMoreButton'),moreMenu=el('mobileMoreMenu'),gate=el('walletGate');
+function closeMore(){moreMenu.hidden=true;moreButton.setAttribute('aria-expanded','false')}
+moreButton?.addEventListener('click',()=>{moreMenu.hidden=!moreMenu.hidden;moreButton.setAttribute('aria-expanded',String(!moreMenu.hidden))});
+window.addEventListener('hashchange',closeMore);
+moreMenu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMore));
+let gateReturnFocus=null;
+function showWalletGate(){gateReturnFocus=document.activeElement;gate.hidden=false;el('walletGateConnect').focus()}
+function hideWalletGate(){gate.hidden=true;gateReturnFocus?.focus?.()}
+el('walletGateClose')?.addEventListener('click',hideWalletGate);
+el('walletGateBrowse')?.addEventListener('click',hideWalletGate);
+gate?.querySelector('[data-close-gate]')?.addEventListener('click',hideWalletGate);
+window.addEventListener('keydown',event=>{if(event.key==='Escape'){if(!gate.hidden)hideWalletGate();else closeMore()}});
+el('walletGateConnect')?.addEventListener('click',()=>{if(document.body.dataset.experience!=='devnet'){toast('Mainnet wallet trading is not enabled.');return}hideWalletGate();el('walletBtn').click()});
+el('walletAccessButton')?.addEventListener('click',()=>{if(connectedAddress()){location.hash='#profile'}else showWalletGate()});
+function updateAccessState(){const address=connectedAddress();if(el('walletAccessStatus'))el('walletAccessStatus').textContent=address?'Connected: '+sym(address):'Your wallet stays in your control. Momentum never asks for your seed phrase.';if(el('walletAccessButton'))el('walletAccessButton').textContent=address?'View profile →':'Connect wallet ↗'}
+el('walletBtn').addEventListener('click',()=>setTimeout(updateAccessState,1000));
+updateAccessState();
+// Prevent accidental transactions from being presented as a sign-in requirement.
+el('createForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
+el('tradeForm')?.addEventListener('submit',event=>{if(!connectedAddress()){event.preventDefault();event.stopImmediatePropagation();showWalletGate()}},true);
+
+// Theme is a device preference only, not a synced account setting.
+const themeToggle=el('themeToggle');
+function setMomentumTheme(mode){document.documentElement.dataset.theme=mode;themeToggle.textContent=mode==='light'?'☾ Dark':'☀ Light';themeToggle.setAttribute('aria-label',mode==='light'?'Switch to dark theme':'Switch to light theme');themeToggle.setAttribute('aria-pressed',String(mode==='light'));try{localStorage.setItem('momentum-theme',mode)}catch{}}
+let savedTheme='dark';try{savedTheme=localStorage.getItem('momentum-theme')||'dark'}catch{}
+setMomentumTheme(savedTheme==='light'?'light':'dark');
+themeToggle.addEventListener('click',()=>setMomentumTheme(document.documentElement.dataset.theme==='light'?'dark':'light'));
+// Local P&L media studio: user-supplied numbers are explicitly unverified.
+let pnlObjectURL=null;
+function pnlValues(){const cost=Number(el('pnlCost').value)||0,value=Number(el('pnlValue').value)||0,profit=value-cost,pct=cost>0?profit/cost*100:0;return {token:el('pnlToken').value.trim().slice(0,32)||'YOUR TOKEN',cost,value,profit,pct}}
+function drawPnl(ctx,width=1080,height=1080){const {token,profit,pct}=pnlValues(),w=width,h=height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#081811');grad.addColorStop(1,'#203d2d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.strokeStyle='#9de6a7';ctx.lineWidth=3;ctx.strokeRect(36,36,w-72,h-72);ctx.fillStyle='#d8ff9b';ctx.font='bold 42px system-ui';ctx.fillText('✦ MOMENTUM',75,145);ctx.fillStyle='#f1fff0';ctx.font='bold 76px system-ui';ctx.fillText(token,75,330,w-150);ctx.fillStyle=profit>=0?'#b9ff91':'#ff9d9d';ctx.font='bold 130px system-ui';ctx.fillText((pct>=0?'+':'')+pct.toFixed(2)+'%',75,540,w-150);ctx.fillStyle='#d5ead5';ctx.font='bold 44px system-ui';ctx.fillText('P&L: '+(profit>=0?'+':'-')+'$'+Math.abs(profit).toFixed(2),75,640,w-150);ctx.font='28px system-ui';ctx.fillText('USER-ENTERED · NOT VERIFIED',75,h-110,w-150)}
+function makePnlCanvas(){const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;drawPnl(canvas.getContext('2d'));return canvas}
+function updatePnl(){const {token,profit,pct}=pnlValues();el('pnlPreviewToken').textContent=token;el('pnlPreviewValue').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';el('pnlPreviewValue').style.color=profit>=0?'#d9ff9a':'#ff9999';el('pnlPreviewProfit').textContent='Profit / Loss: '+(profit>=0?'+':'-')+'$'+Math.abs(profit).toFixed(2)}
+['pnlToken','pnlCost','pnlValue'].forEach(id=>el(id)?.addEventListener('input',updatePnl));
+el('pnlVideo')?.addEventListener('change',()=>{if(pnlObjectURL)URL.revokeObjectURL(pnlObjectURL);const file=el('pnlVideo').files?.[0],video=el('pnlVideoPreview');pnlObjectURL=file?URL.createObjectURL(file):null;video.hidden=!file;if(file)video.src=pnlObjectURL;else video.removeAttribute('src');el('pnlStatus').textContent=file?'Video loaded locally: '+file.name+'. Export depends on device and browser support.':'Select a video to include it in the export.'});
+el('pnlSaveImage')?.addEventListener('click',()=>{const canvas=makePnlCanvas();canvas.toBlob(blob=>{if(!blob){toast('Image export unavailable.');return}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='momentum-pnl.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),15000)},'image/png')});
+el('pnlSaveVideo')?.addEventListener('click',async()=>{
+ const video=el('pnlVideoPreview'),file=el('pnlVideo').files?.[0];if(!file){toast('Choose a video first.');return}
+ if(!HTMLCanvasElement.prototype.captureStream||typeof MediaRecorder==='undefined'){toast('Video export is unsupported on this browser. Try desktop Chrome.');return}
+ const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;const ctx=canvas.getContext('2d');const stream=canvas.captureStream(24);let recorder,parts=[];
+ try{const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw Error('No supported video recording format');recorder=new MediaRecorder(stream,{mimeType:mime});recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};recorder.onstop=()=>{const blob=new Blob(parts,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='momentum-pnl-video.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);el('pnlStatus').textContent='Export completed. Save the file from your browser downloads.'};await video.play();recorder.start(1000);el('pnlStatus').textContent='Exporting while video plays. Keep this page open.';let active=true;const paint=()=>{if(!active)return;ctx.fillStyle='#08140d';ctx.fillRect(0,0,720,1280);if(video.readyState>=2){const scale=Math.max(720/video.videoWidth,940/video.videoHeight),vw=video.videoWidth*scale,vh=video.videoHeight*scale;ctx.drawImage(video,(720-vw)/2,0,vw,vh)}const card=makePnlCanvas();ctx.drawImage(card,40,940,640,300);if(!video.ended&&recorder.state==='recording')requestAnimationFrame(paint)};paint();video.addEventListener('ended',()=>{active=false;if(recorder.state==='recording')recorder.stop();stream.getTracks().forEach(t=>t.stop())},{once:true});
+ }catch(error){stream.getTracks().forEach(t=>t.stop());el('pnlStatus').textContent='Video export unavailable: '+error.message}
+});
+
+// Device-level preference draft; never treated as marketing consent or server subscription.
+try{const p=JSON.parse(localStorage.getItem('momentum-callout-preferences')||'{}');el('calloutProduct').checked=!!p.product;el('calloutWeekly').checked=!!p.weekly}catch{}
+el('calloutSave')?.addEventListener('click',()=>{try{localStorage.setItem('momentum-callout-preferences',JSON.stringify({product:el('calloutProduct').checked,weekly:el('calloutWeekly').checked}));toast('Saved on this device. Email subscriptions are not active yet.')}catch{toast('Could not save device preferences.')}});
