@@ -240,3 +240,20 @@ body[data-experience="devnet"] #terminalSearch{display:none!important}
 
 /* Never expose Devnet signing controls inside the Mainnet discovery experience. */
 body[data-experience="mainnet"] #walletBtn,body[data-experience="mainnet"] #walletAccessButton,body[data-experience="mainnet"] #walletGateConnect{display:none!important}
+
+/* Compact trading-terminal controls, consistent with native wallet interfaces. */
+.terminal-search{max-width:100%;border:1px solid rgba(192,180,255,.15);border-radius:16px;padding:16px;background:rgba(17,18,31,.72)}
+.terminal-search label{display:block;font-size:.79rem;letter-spacing:.01em;font-weight:650;margin-bottom:9px;color:#e6e1f4}
+.terminal-search-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.terminal-search-row input{flex:1 1 220px;min-width:0;min-height:43px;border-radius:10px;font-size:14px}
+.terminal-search-row button{min-height:43px;font-size:13px;border-radius:10px;padding:0 14px;transition:transform .15s ease,opacity .15s ease}
+.terminal-search-row button:active{transform:scale(.97)}
+.terminal-search-row button:disabled{opacity:.55;cursor:progress}
+#marketPasteBtn{background:#29283b;color:#e9e4ff;border:1px solid #48435c}
+.market-search-loading{display:flex;gap:8px;margin:14px 0 9px}
+.market-search-loading[hidden]{display:none}
+.market-search-loading span{height:9px;border-radius:7px;background:linear-gradient(90deg,#343046,#615574,#343046);background-size:200% 100%;animation:momentumSkeleton 1.25s ease-in-out infinite}
+.market-search-loading span:nth-child(1){width:35%}.market-search-loading span:nth-child(2){width:23%;animation-delay:.12s}.market-search-loading span:nth-child(3){width:18%;animation-delay:.24s}
+@keyframes momentumSkeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.market-search-loading span{animation:none}}
+@media(max-width:520px){.terminal-search{padding:12px}.terminal-search-row input{flex-basis:100%}.terminal-search-row button{flex:1}}

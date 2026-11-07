@@ -114,7 +114,7 @@ let searchSequence=0,searchActive=false;
 async function searchHistoricalPools(){
  if(document.body.dataset.experience!=='mainnet'){toast('Historical Solana pool search is available in Mainnet discovery.');return}
  const q=el('marketSearch').value.trim();if(q.length<2){toast('Enter at least two characters.');return}
- const seq=++searchSequence;el('marketSearchStatus').textContent='Searching indexed pools…';
+ const seq=++searchSequence;el('marketSearchStatus').textContent='Searching markets…';el('marketSearchLoading').hidden=false;el('marketSearchBtn').disabled=true;
  try{
   const response=await fetch('/api/search-pools?q='+encodeURIComponent(q));
   if(!response.ok)throw Error('Search temporarily unavailable');
@@ -123,9 +123,20 @@ async function searchHistoricalPools(){
   el('marketChartPanel').hidden=true;el('marketSearchClear').hidden=false;
   el('marketSearchStatus').textContent=app.mainnet.length+' indexed pool results. Historical coverage depends on the market data provider.';
   renderRadar();
+  if(isPublicKey(q)&&app.mainnet.length){const exact=app.mainnet.find(item=>item.mint===q||item.pool===q);if(exact)selectToken(exact);else el('marketSearchStatus').textContent='Address not found in indexed results. Try the pool address or verify the network.'}
  }catch(error){if(seq===searchSequence)el('marketSearchStatus').textContent='Search unavailable. Try again shortly.'}
+ finally{if(seq===searchSequence){el('marketSearchLoading').hidden=true;el('marketSearchBtn').disabled=false}}
 }
 el('marketSearchBtn')?.addEventListener('click',searchHistoricalPools);
+el('marketPasteBtn')?.addEventListener('click',async()=>{
+ try{
+  if(!navigator.clipboard?.readText){el('marketSearch').focus();toast('Use your keyboard Paste option to insert the contract address.');return}
+  const pasted=(await navigator.clipboard.readText()).trim();
+  if(!pasted){toast('Clipboard is empty.');return}
+  el('marketSearch').value=pasted.slice(0,100);
+  if(isPublicKey(pasted)&&document.body.dataset.experience==='mainnet')await searchHistoricalPools();else el('marketSearch').focus();
+ }catch{el('marketSearch').focus();toast('Clipboard access was declined. Long-press the field and select Paste.');}
+});
 el('marketSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchHistoricalPools()}});
 el('marketSearchClear')?.addEventListener('click',()=>{++searchSequence;searchActive=false;el('marketSearch').value='';el('marketSearchClear').hidden=true;el('marketSearchStatus').textContent='Showing newly indexed pools.';refreshPools()});
 function scoreResponse(risk){
